@@ -9,9 +9,9 @@ Quick reference for GPIO assignments on the ED1 Citilab Board.
 | 0 | Boot/Flash | - | I | Boot mode select |
 | 2 | Touch Left | `btn_left` | I | Capacitive touch |
 | 4 | Touch Up | `btn_up` | I | Capacitive touch |
-| 5 | TFT CS | `pantalla_interna` | O | SPI chip select |
-| 9 | TFT DC | `pantalla_interna` | O | Data/Command |
-| 10 | TFT Reset | `pantalla_interna` | O | Display reset |
+| 5 | TFT CS | `internal_display` | O | SPI chip select |
+| 9 | TFT DC | `internal_display` | O | Data/Command |
+| 10 | TFT Reset | `internal_display` | O | Display reset |
 | 12 | LED Matrix | `led_matrix_light` | O | WS2812 data |
 | 13 | Touch Down | `btn_down` | I | Capacitive touch |
 | 14 | Touch X | `btn_x` | I | Capacitive touch |
@@ -21,10 +21,10 @@ Quick reference for GPIO assignments on the ED1 Citilab Board.
 | 21 | I2C SDA | `bus_i2c` | I/O | I2C data |
 | 22 | I2C SCL | `bus_i2c` | O | I2C clock |
 | 23 | SPI MOSI | `spi` | O | SPI data out |
-| 26 | Buzzer | - | O | Via PAM8301 amp |
+| 26 | Buzzer | `buzzer_output` | O | Via PAM8301 amp |
 | 27 | Touch Right | `btn_right` | I | Capacitive touch |
 | 34 | Light Sensor | `light_sensor` | I | ADC input |
-| 35 | IR Receiver | - | I | TSOP75438TT |
+| 35 | IR Receiver | `remote_receiver` | I | TSOP75438TT |
 
 ## Bus Assignments
 

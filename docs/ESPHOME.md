@@ -6,10 +6,12 @@ Detailed explanation of the ESPHome configuration for the ED1 board.
 
 ```
 ed1-hoas/
-├── ed1-rev23-a.yaml      # Main configuration
-├── secrets.yaml          # Credentials (git-ignored)
-├── secrets.sample.yaml   # Template
-└── pixelmix.ttf          # Font file
+├── ed1-full-features.sample.yaml  # All features enabled (recommended)
+├── ed1-rev23-a.sample.yaml        # Minimal sample configuration
+├── secrets.yaml                   # Credentials (git-ignored)
+├── secrets.sample.yaml            # Template
+└── fonts/
+    └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ```
 
 ## Secrets Setup
@@ -90,27 +92,29 @@ i2c:
 
 ```yaml
 font:
-  - file: "pixelmix.ttf"
-    id: fuente_pixel
+  - file: "fonts/pixelmix/pixelmix.ttf"
+    id: pixel_font
     size: 8
-  - file: "pixelmix.ttf"
-    id: fuente_grande
+  - file: "fonts/pixelmix/pixelmix.ttf"
+    id: large_font
     size: 16
 ```
 
-Download `pixelmix.ttf` and place it in your ESPHome config directory.
+The font file is included in the `fonts/` directory.
 
 ### 5. TFT Display (ST7735)
 
 ```yaml
 display:
   - platform: st7735
-    id: pantalla_interna
+    id: internal_display
     cs_pin: GPIO5
     dc_pin: GPIO9
     reset_pin: GPIO10
     rotation: 0
     model: "INITR_GREENTAB"
+    col_start: 2
+    row_start: 1
     device_width: 128
     device_height: 128
     update_interval: 1s
@@ -121,13 +125,13 @@ display:
 **Display Layout:**
 ```
 ┌────────────────────────┐
-│     "ED1 PRO"          │  <- Green, large font
+│     "ED1 FULL"         │  <- Green, large font
 │                        │
 │    192.168.1.100       │  <- IP address
 │                        │
 │     T: 45.2 C          │  <- CPU temp
 │                        │
-│   [Matrix Text]        │  <- Yellow, or "Matriz Lista"
+│   [Matrix Text]        │  <- Yellow, or "Matrix Ready"
 └────────────────────────┘
 ```
 
@@ -159,21 +163,23 @@ display:
 
 ```yaml
 light:
-  - platform: neopixelbus
-    type: GRB
-    variant: WS2812X
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
+    chipset: WS2812
     pin: GPIO12
     num_leds: 256
-    name: "ED1 Luz Matriz"
+    name: "ED1 LED Matrix"
     id: led_matrix_light
-    method: esp32_rmt
     default_transition_length: 0s
     color_correct: [40%, 40%, 40%]
 ```
 
-- **type: GRB**: Color order (Green-Red-Blue)
-- **method: esp32_rmt**: Uses RMT peripheral for precise timing
+- **platform: esp32_rmt_led_strip**: ESPHome native driver using ESP-IDF 5.x RMT
+- **rgb_order: GRB**: Color order (Green-Red-Blue)
+- **chipset: WS2812**: LED chipset type
 - **color_correct**: Reduces brightness to 40% (power savings)
+
+> **Note**: We use `esp32_rmt_led_strip` instead of `neopixelbus` for compatibility with the IR receiver. Both use the RMT peripheral but the native driver uses the newer ESP-IDF 5.x API.
 
 ### 8. Bluetooth Proxy
 
@@ -189,7 +195,47 @@ bluetooth_proxy:
 
 Extends Home Assistant's Bluetooth range. The ED1 acts as a BLE relay.
 
-### 9. Touch Buttons
+### 9. Buzzer
+
+```yaml
+output:
+  - platform: ledc
+    pin: GPIO26
+    id: buzzer_output
+
+switch:
+  - platform: output
+    name: "ED1 Buzzer"
+    id: buzzer_switch
+    output: buzzer_output
+```
+
+The buzzer uses PWM via the LEDC (LED Control) peripheral. Turning the switch on activates the buzzer with a continuous tone.
+
+### 10. IR Receiver
+
+```yaml
+remote_receiver:
+  pin:
+    number: GPIO35
+    inverted: true
+  dump: all
+  on_nec:
+    then:
+      - lambda: |-
+          ESP_LOGI("IR", "NEC: address=0x%04X, command=0x%04X", x.address, x.command);
+  on_samsung:
+    then:
+      - lambda: |-
+          ESP_LOGI("IR", "Samsung: data=0x%08X", x.data);
+```
+
+- **dump: all**: Logs all received IR codes (useful for debugging)
+- **on_nec/on_samsung**: Protocol-specific handlers
+- IR codes appear in ESPHome logs, not as Home Assistant entities
+- Use to trigger automations based on remote control buttons
+
+### 11. Touch Buttons
 
 ```yaml
 esp32_touch:
@@ -198,11 +244,11 @@ esp32_touch:
 binary_sensor:
   - platform: esp32_touch
     id: btn_up
-    name: "ED1 Botón Arriba"
+    name: "ED1 Button Up"
     pin: GPIO4
     threshold: 500
     on_press:
-      - logger.log: "Botón Arriba PRESSED"
+      - logger.log: "Button Up PRESSED"
 ```
 
 **Threshold Tuning:**
@@ -211,33 +257,34 @@ binary_sensor:
 - If not responding: Decrease threshold
 - Enable `setup_mode: true` temporarily to see raw values
 
-### 10. Sensors
+### 12. Sensors
 
 ```yaml
 sensor:
   - platform: wifi_signal
-    name: "ED1 Señal WiFi"
+    name: "ED1 WiFi Signal"
     update_interval: 60s
 
   - platform: internal_temperature
-    name: "ED1 Temperatura CPU"
-    id: temp_cpu
+    name: "ED1 CPU Temperature"
+    id: cpu_temp
 
   - platform: adc
     pin: GPIO34
-    name: "ED1 Luz (%)"
+    name: "ED1 Light Level"
     attenuation: 12db
+    unit_of_measurement: "%"
     filters:
       - multiply: 30.3  # Scale to 0-100%
 ```
 
-### 11. Text Input
+### 13. Text Input
 
 ```yaml
 text:
   - platform: template
-    name: "Escribir en Matriz"
-    id: mi_texto_input
+    name: "ED1 Matrix Text"
+    id: matrix_text_input
     optimistic: true
     min_length: 0
     max_length: 20
@@ -255,7 +302,7 @@ Modify the `lambda` in the display section:
 ```yaml
 lambda: |-
   it.fill(Color(0, 0, 0));
-  it.print(0, 0, id(fuente_pixel), Color(255, 0, 0), "Custom Text");
+  it.print(0, 0, id(pixel_font), Color(255, 0, 0), "Custom Text");
 ```
 
 ### Add Button Actions
@@ -264,7 +311,7 @@ lambda: |-
 binary_sensor:
   - platform: esp32_touch
     id: btn_ok
-    name: "ED1 Botón OK"
+    name: "ED1 Button OK"
     pin: GPIO15
     threshold: 500
     on_press:
@@ -299,7 +346,7 @@ The ED1 uses a CP2102N USB-to-UART chip. Install the driver:
 - Adjust threshold based on idle vs touched values
 
 ### LED Matrix Wrong Colors
-- Change `type` from `GRB` to `RGB` or `BRG`
+- Change `rgb_order` from `GRB` to `RGB` or `BRG`
 - Some strips use different color orders
 
 ### WiFi Connection Issues
