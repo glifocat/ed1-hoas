@@ -281,6 +281,13 @@ color_correct: [100%, 100%, 100%]  # Full brightness
 
 ## Troubleshooting
 
+### Device Not Detected via USB
+The ED1 uses a CP2102N USB-to-UART chip. Install the driver:
+- Download from [Silicon Labs CP210x Drivers](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
+- Install for your OS (Windows, macOS, Linux)
+- Reconnect the USB cable
+- The device should appear as `/dev/ttyUSB0` (Linux), `/dev/cu.SLAB_USBtoUART` (macOS), or `COM3` (Windows)
+
 ### Display Shows Garbage
 - Check `model` setting matches your display
 - Try adjusting `col_start` and `row_start` offsets

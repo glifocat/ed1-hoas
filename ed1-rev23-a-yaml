@@ -42,10 +42,10 @@ i2c:
   id: bus_i2c
 
 font:
-  - file: "pixelmix.ttf"
+  - file: "fonts/pixelmix/pixelmix.ttf"
     id: fuente_pixel
     size: 8
-  - file: "pixelmix.ttf"
+  - file: "fonts/pixelmix/pixelmix.ttf"
     id: fuente_grande
     size: 16
 
