@@ -1,5 +1,9 @@
 # ED1 Citilab Board - Home Assistant Integration
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![ESPHome](https://img.shields.io/badge/ESPHome-2024.x-brightgreen.svg)](https://esphome.io)
+[![ESP32](https://img.shields.io/badge/ESP32-supported-blue.svg)](https://www.espressif.com/en/products/socs/esp32)
+
 ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP32 educational board with Home Assistant.
 
 ![ED1 Board Front](docs/images/ed1-front.png)
@@ -33,7 +37,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 1. **Clone this repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ed1-hoas.git
+   git clone https://github.com/glifocat/ed1-hoas.git
    ```
 
 2. **Configure secrets**
