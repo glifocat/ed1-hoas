@@ -6,13 +6,75 @@ Detailed explanation of the ESPHome configuration for the ED1 board.
 
 ```
 ed1-hoas/
-├── ed1-full-features.sample.yaml  # All features enabled (recommended)
-├── ed1-rev23-a.sample.yaml        # Minimal sample configuration
+├── ed1-message.sample.yaml        # Message display with chat log (recommended)
+├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime)
+├── ed1-rev23-a.sample.yaml        # Status display with IR receiver
+├── ed1-full-features.sample.yaml  # All features (TFT + LED matrix + IR)
 ├── secrets.yaml                   # Credentials (git-ignored)
 ├── secrets.sample.yaml            # Template
+├── packages/                      # Modular ESPHome components
+│   ├── core.yaml                  # ESP32, logger, API, OTA, WiFi
+│   ├── hardware.yaml              # SPI and I2C buses
+│   ├── display.yaml               # TFT ST7735 display
+│   ├── fonts.yaml                 # Fonts + Material Symbols icons
+│   ├── buzzer.yaml                # PWM output + RTTTL melodies
+│   ├── buttons.yaml               # 6 capacitive touch buttons
+│   ├── sensors.yaml               # WiFi, uptime, temp, light sensors
+│   ├── bluetooth.yaml             # BLE tracker + proxy
+│   ├── ir-receiver.yaml           # 38kHz IR receiver
+│   └── led-matrix.yaml            # 32x8 WS2812B LED matrix
 └── fonts/
     └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ```
+
+## Modular Package System
+
+This project uses ESPHome's package system for modularity. Each sample config uses `!include` to import reusable components from the `packages/` directory.
+
+### Basic Structure
+
+```yaml
+substitutions:
+  device_name: ed1-mydevice
+  friendly_name: ED1 My Device
+  ap_ssid: ED1-MyDevice-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  bluetooth: !include packages/bluetooth.yaml
+```
+
+### Extending Package Components
+
+Use `!extend` to override or add to components defined in packages:
+
+```yaml
+# Override display lambda
+display:
+  - id: !extend internal_display
+    lambda: |-
+      // Custom display code here
+
+# Add custom button behavior
+binary_sensor:
+  - id: !extend btn_ok
+    on_press:
+      - logger.log: "Custom OK action"
+      - rtttl.play: 'success:d=8,o=5,b=160:c,e,g'
+```
+
+### Creating a New Configuration
+
+1. Copy an existing sample (e.g., `ed1-message.sample.yaml`)
+2. Update the `substitutions` section with your device name
+3. Add or remove packages as needed
+4. Override display lambda and button behaviors for your use case
 
 ## Secrets Setup
 
@@ -35,9 +97,11 @@ ed1-hoas/
    openssl rand -base64 32
    ```
 
-## Configuration Sections
+## Package Reference
 
-### 1. Core Configuration
+The following sections describe what each package contains. These are automatically included when you use `!include packages/<name>.yaml`.
+
+### Core Configuration (packages/core.yaml)
 
 ```yaml
 esphome:
@@ -55,7 +119,7 @@ esp32:
 - **board**: Generic ESP32 dev board
 - **framework**: Arduino for best compatibility
 
-### 2. Connectivity
+### Connectivity (packages/core.yaml)
 
 ```yaml
 wifi:
@@ -71,7 +135,7 @@ captive_portal:
 - **ap**: Fallback access point if WiFi fails
 - **captive_portal**: Web config when in AP mode
 
-### 3. Hardware Buses
+### Hardware Buses (packages/hardware.yaml)
 
 ```yaml
 spi:
@@ -88,7 +152,7 @@ i2c:
 
 - **scan: true**: Logs detected I2C devices on boot
 
-### 4. Fonts
+### Fonts (packages/fonts.yaml)
 
 ```yaml
 font:
@@ -102,7 +166,7 @@ font:
 
 The font file is included in the `fonts/` directory.
 
-### 5. TFT Display (ST7735)
+### TFT Display (packages/display.yaml)
 
 ```yaml
 display:
@@ -140,7 +204,7 @@ display:
 - `INITR_BLACKTAB`: Alternative initialization
 - `INITR_144GREENTAB`: Specific 144x144 variant
 
-### 6. LED Matrix Display
+### LED Matrix Display (packages/led-matrix.yaml)
 
 ```yaml
 display:
@@ -159,7 +223,7 @@ display:
 
 **pixel_mapper**: Handles the serpentine wiring pattern where odd columns are reversed.
 
-### 7. LED Matrix Light
+### LED Matrix Light (packages/led-matrix.yaml)
 
 ```yaml
 light:
@@ -181,7 +245,7 @@ light:
 
 > **Note**: We use `esp32_rmt_led_strip` instead of `neopixelbus` for compatibility with the IR receiver. Both use the RMT peripheral but the native driver uses the newer ESP-IDF 5.x API.
 
-### 8. Bluetooth Proxy
+### Bluetooth Proxy (packages/bluetooth.yaml)
 
 ```yaml
 esp32_ble_tracker:
@@ -195,7 +259,7 @@ bluetooth_proxy:
 
 Extends Home Assistant's Bluetooth range. The ED1 acts as a BLE relay.
 
-### 9. Buzzer
+### Buzzer (packages/buzzer.yaml)
 
 ```yaml
 output:
@@ -212,7 +276,7 @@ switch:
 
 The buzzer uses PWM via the LEDC (LED Control) peripheral. Turning the switch on activates the buzzer with a continuous tone.
 
-### 10. IR Receiver
+### IR Receiver (packages/ir-receiver.yaml)
 
 ```yaml
 remote_receiver:
@@ -235,7 +299,7 @@ remote_receiver:
 - IR codes appear in ESPHome logs, not as Home Assistant entities
 - Use to trigger automations based on remote control buttons
 
-### 11. Touch Buttons
+### Touch Buttons (packages/buttons.yaml)
 
 ```yaml
 esp32_touch:
@@ -257,7 +321,7 @@ binary_sensor:
 - If not responding: Decrease threshold
 - Enable `setup_mode: true` temporarily to see raw values
 
-### 12. Sensors
+### Sensors (packages/sensors.yaml)
 
 ```yaml
 sensor:
@@ -278,7 +342,7 @@ sensor:
       - multiply: 30.3  # Scale to 0-100%
 ```
 
-### 13. Text Input
+### Text Input (packages/led-matrix.yaml)
 
 ```yaml
 text:

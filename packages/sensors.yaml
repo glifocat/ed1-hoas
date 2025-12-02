@@ -1,0 +1,37 @@
+# ==============================================================================
+# ED1 Sensors Package - Common sensors
+# ==============================================================================
+
+sensor:
+  - platform: wifi_signal
+    name: "ED1 WiFi Signal"
+    id: wifi_signal_sensor
+    update_interval: 10s
+
+  - platform: uptime
+    name: "ED1 Uptime"
+    id: uptime_sensor
+
+  - platform: internal_temperature
+    name: "ED1 CPU Temperature"
+    id: cpu_temp
+
+  - platform: adc
+    pin: GPIO34
+    name: "ED1 Light Level"
+    id: light_sensor
+    attenuation: 12db
+    update_interval: 5s
+    unit_of_measurement: "%"
+    device_class: ""
+    filters:
+      - multiply: 30.3
+
+text_sensor:
+  - platform: wifi_info
+    ssid:
+      name: "ED1 WiFi SSID"
+      id: wifi_ssid
+    ip_address:
+      name: "ED1 IP Address"
+      id: wifi_ip

@@ -1,0 +1,33 @@
+# ==============================================================================
+# ED1 Fonts Package - Common font definitions
+# ==============================================================================
+
+font:
+  - file: "fonts/pixelmix/pixelmix.ttf"
+    id: pixel_font
+    size: 8
+  - file: "fonts/pixelmix/pixelmix.ttf"
+    id: message_font
+    size: 10
+  - file: "fonts/pixelmix/pixelmix.ttf"
+    id: large_font
+    size: 16
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: icons_12
+    size: 12
+    glyphs:
+      - "\U0000e63e" # wifi
+      - "\U0000e88a" # home (for HA)
+      - "\U0000e0b7" # mail/message
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: icons_16
+    size: 16
+    glyphs:
+      - "\U0000e1ff" # device_thermostat
+      - "\U0000e518" # light_mode
+      - "\U0000e8b5" # schedule
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: icons_20
+    size: 20
+    glyphs:
+      - "\U0000e63e" # wifi

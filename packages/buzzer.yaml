@@ -1,0 +1,28 @@
+# ==============================================================================
+# ED1 Buzzer Package - PWM output and RTTTL sounds
+# ==============================================================================
+
+output:
+  - platform: ledc
+    pin: GPIO26
+    id: buzzer_output
+
+rtttl:
+  output: buzzer_output
+  id: buzzer_rtttl
+
+button:
+  - platform: template
+    name: "ED1 Beep"
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+
+  - platform: template
+    name: "ED1 Alert"
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+
+  - platform: template
+    name: "ED1 Success"
+    on_press:
+      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'

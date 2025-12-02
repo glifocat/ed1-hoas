@@ -1,0 +1,20 @@
+# ==============================================================================
+# ED1 Display Package - TFT ST7735 128x128
+# ==============================================================================
+# Configures the built-in TFT display
+# Lambda must be provided in main config using !extend
+# ==============================================================================
+
+display:
+  - platform: st7735
+    id: internal_display
+    cs_pin: GPIO5
+    dc_pin: GPIO9
+    reset_pin: GPIO10
+    rotation: 0
+    model: "INITR_GREENTAB"
+    col_start: 2
+    row_start: 1
+    device_width: 128
+    device_height: 128
+    update_interval: 1s

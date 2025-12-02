@@ -1,0 +1,280 @@
+# ==============================================================================
+# ED1 Message Display - Modular ESPHome Configuration
+# ==============================================================================
+#
+# A message display with chat log functionality.
+# - Receives messages from Home Assistant
+# - Navigate with Up/Down buttons
+# - Delete with X button
+# - Messages persist until deleted
+#
+# Usage:
+#   1. Copy this file and rename (e.g., ed1-fridge.yaml)
+#   2. Change the substitutions below
+#   3. Run: esphome run <your-config>.yaml
+#
+# To send a message from Home Assistant:
+#   service: text.set_value
+#   target:
+#     entity_id: text.<device_name>_message
+#   data:
+#     value: "Your message here"
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-message
+  friendly_name: ED1 Message Display
+  ap_ssid: ED1-Message-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  bluetooth: !include packages/bluetooth.yaml
+
+# Track HA connection
+api:
+  on_client_connected:
+    - lambda: 'id(ha_connected) = true;'
+  on_client_disconnected:
+    - lambda: 'id(ha_connected) = false;'
+
+# Time sync
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Madrid
+
+# Startup animation and globals
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - delay: 3s
+      - lambda: 'id(boot_complete) = true;'
+
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+  - id: ha_connected
+    type: bool
+    initial_value: 'false'
+  - id: message_list
+    type: std::vector<std::string>
+    restore_value: false
+  - id: timestamp_list
+    type: std::vector<std::string>
+    restore_value: false
+  - id: current_index
+    type: int
+    initial_value: '0'
+
+# Message input from Home Assistant
+text:
+  - platform: template
+    name: "ED1 Display Message"
+    id: display_message
+    optimistic: true
+    min_length: 0
+    max_length: 200
+    mode: text
+    restore_value: true
+    on_value:
+      then:
+        - lambda: |-
+            if (x.length() > 0 && x != "None") {
+              // Add message to the list
+              id(message_list).insert(id(message_list).begin(), x);
+              // Capture timestamp
+              auto time = id(sntp_time).now();
+              if (time.is_valid()) {
+                char buf[20];
+                snprintf(buf, sizeof(buf), "%02d:%02d", time.hour, time.minute);
+                id(timestamp_list).insert(id(timestamp_list).begin(), std::string(buf));
+              } else {
+                id(timestamp_list).insert(id(timestamp_list).begin(), "??:??");
+              }
+              // Keep max 20 messages
+              if (id(message_list).size() > 20) {
+                id(message_list).pop_back();
+                id(timestamp_list).pop_back();
+              }
+              // Reset to newest message
+              id(current_index) = 0;
+            }
+        - rtttl.play: 'notify:d=8,o=5,b=140:c6,e6'
+
+# Override button behaviors for message navigation
+binary_sensor:
+  - id: !extend btn_up
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - lambda: |-
+          // Navigate to older message
+          if (id(current_index) < (int)id(message_list).size() - 1) {
+            id(current_index)++;
+          }
+      - logger.log: "Button Up - Older message"
+
+  - id: !extend btn_down
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - lambda: |-
+          // Navigate to newer message
+          if (id(current_index) > 0) {
+            id(current_index)--;
+          }
+      - logger.log: "Button Down - Newer message"
+
+  - id: !extend btn_x
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - lambda: |-
+          // Delete current message
+          if (!id(message_list).empty() && id(current_index) < (int)id(message_list).size()) {
+            id(message_list).erase(id(message_list).begin() + id(current_index));
+            id(timestamp_list).erase(id(timestamp_list).begin() + id(current_index));
+            // Adjust index if needed
+            if (id(current_index) >= (int)id(message_list).size() && id(current_index) > 0) {
+              id(current_index)--;
+            }
+          }
+      - logger.log: "Button X - Delete message"
+
+# Message display layout
+display:
+  - id: !extend internal_display
+    lambda: |-
+      // Colors
+      auto BLACK = Color(0, 0, 0);
+      auto WHITE = Color(255, 255, 255);
+      auto GREEN = Color(0, 255, 0);
+      auto CYAN = Color(0, 255, 255);
+      auto YELLOW = Color(255, 255, 0);
+      auto ORANGE = Color(255, 165, 0);
+      auto RED = Color(255, 0, 0);
+      auto GRAY = Color(80, 80, 80);
+
+      it.fill(BLACK);
+
+      // Boot splash screen
+      if (!id(boot_complete)) {
+        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
+        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        return;
+      }
+
+      // === HEADER (y=0-16) ===
+      // WiFi icon on left
+      bool has_ip = !id(wifi_ip).state.empty();
+      if (has_ip) {
+        it.print(2, 2, id(icons_12), GREEN, "\U0000e63e");
+      } else {
+        int sec = (int)id(uptime_sensor).state;
+        if (sec % 2 == 0) {
+          it.print(2, 2, id(icons_12), YELLOW, "\U0000e63e");
+        }
+      }
+
+      // HA connection icon
+      if (id(ha_connected)) {
+        it.print(16, 2, id(icons_12), GREEN, "\U0000e88a");
+      } else {
+        it.print(16, 2, id(icons_12), RED, "\U0000e88a");
+      }
+
+      // Time in center
+      auto time = id(sntp_time).now();
+      if (time.is_valid()) {
+        it.strftime(64, 2, id(pixel_font), WHITE, TextAlign::TOP_CENTER, "%H:%M", time);
+      }
+
+      // Signal bars on right
+      int rssi = (int)id(wifi_signal_sensor).state;
+      int bars = 0;
+      Color bar_color = RED;
+      if (rssi > -50) { bars = 4; bar_color = GREEN; }
+      else if (rssi > -60) { bars = 3; bar_color = GREEN; }
+      else if (rssi > -70) { bars = 2; bar_color = YELLOW; }
+      else if (rssi > -80) { bars = 1; bar_color = ORANGE; }
+
+      for (int i = 0; i < 4; i++) {
+        int bar_height = (i + 1) * 2;
+        int bar_x = 114 + (i * 4);
+        int bar_y = 12 - bar_height;
+        if (i < bars) {
+          it.filled_rectangle(bar_x, bar_y, 3, bar_height, bar_color);
+        } else {
+          it.rectangle(bar_x, bar_y, 3, bar_height, bar_color);
+        }
+      }
+
+      // Separator line
+      it.horizontal_line(0, 16, 128, GRAY);
+
+      // === MESSAGE AREA (y=18-110) ===
+      int msg_count = id(message_list).size();
+      if (msg_count == 0) {
+        // No messages - show idle state
+        it.print(64, 50, id(icons_12), GRAY, TextAlign::CENTER, "\U0000e0b7");
+        it.print(64, 70, id(pixel_font), GRAY, TextAlign::CENTER, "No messages");
+      } else {
+        // Ensure index is in bounds
+        if (id(current_index) >= msg_count) id(current_index) = msg_count - 1;
+        if (id(current_index) < 0) id(current_index) = 0;
+
+        std::string msg = id(message_list)[id(current_index)];
+        std::string ts = id(timestamp_list)[id(current_index)];
+
+        // Show navigation and timestamp header
+        it.printf(64, 20, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "[%d/%d] %s", id(current_index) + 1, msg_count, ts.c_str());
+
+        // Show message with word wrap
+        int y_pos = 32;
+        int line_height = 12;
+        int max_chars = 14;  // Approximate chars per line with message_font
+        int max_lines = 6;  // Reduced by 1 for header line
+        int line_count = 0;
+
+        std::string remaining = msg;
+        while (!remaining.empty() && line_count < max_lines) {
+          std::string line;
+          if (remaining.length() <= max_chars) {
+            line = remaining;
+            remaining = "";
+          } else {
+            // Find last space within max_chars
+            size_t break_pos = remaining.rfind(' ', max_chars);
+            if (break_pos == std::string::npos || break_pos == 0) {
+              break_pos = max_chars;
+            }
+            line = remaining.substr(0, break_pos);
+            remaining = remaining.substr(break_pos);
+            // Trim leading space
+            if (!remaining.empty() && remaining[0] == ' ') {
+              remaining = remaining.substr(1);
+            }
+          }
+          it.print(64, y_pos, id(message_font), CYAN, TextAlign::TOP_CENTER, line.c_str());
+          y_pos += line_height;
+          line_count++;
+        }
+      }
+
+      // === FOOTER (y=112-128) ===
+      it.horizontal_line(0, 112, 128, GRAY);
+
+      // Light sensor on left
+      it.printf(4, 116, id(pixel_font), YELLOW, "L:%.0f%%", id(light_sensor).state);
+
+      // Hint on right
+      if (msg_count > 0) {
+        it.print(124, 116, id(pixel_font), RED, TextAlign::TOP_RIGHT, "[X] del");
+      }

@@ -49,10 +49,12 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 3. **Copy to ESPHome**
 
    Choose a sample configuration:
-   - `ed1-full-features.sample.yaml` - All features (recommended)
-   - `ed1-rev23-a.sample.yaml` - Minimal configuration
+   - `ed1-message.sample.yaml` - Message display with chat log (recommended)
+   - `ed1-status.sample.yaml` - Status display showing WiFi, sensors, uptime
+   - `ed1-rev23-a.sample.yaml` - Status display with IR receiver
+   - `ed1-full-features.sample.yaml` - All features (TFT + LED matrix + IR)
 
-   Copy your chosen sample, `secrets.yaml`, and the `fonts/` folder to your ESPHome config directory.
+   Copy your chosen sample, `secrets.yaml`, the `fonts/` folder, and the `packages/` folder to your ESPHome config directory.
 
 4. **Install on device**
 
@@ -69,10 +71,23 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 ```
 ed1-hoas/
-├── ed1-full-features.sample.yaml  # All features enabled (recommended)
-├── ed1-rev23-a.sample.yaml        # Minimal sample configuration
+├── ed1-message.sample.yaml        # Message display with chat log (recommended)
+├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime)
+├── ed1-rev23-a.sample.yaml        # Status display with IR receiver
+├── ed1-full-features.sample.yaml  # All features (TFT + LED matrix + IR)
 ├── secrets.sample.yaml            # Template for secrets
 ├── secrets.yaml                   # Your credentials (git-ignored)
+├── packages/                      # Modular ESPHome components
+│   ├── core.yaml                  # ESP32, logger, API, OTA, WiFi
+│   ├── hardware.yaml              # SPI and I2C buses
+│   ├── display.yaml               # TFT ST7735 display
+│   ├── fonts.yaml                 # Fonts + Material Symbols icons
+│   ├── buzzer.yaml                # PWM output + RTTTL melodies
+│   ├── buttons.yaml               # 6 capacitive touch buttons
+│   ├── sensors.yaml               # WiFi, uptime, temp, light sensors
+│   ├── bluetooth.yaml             # BLE tracker + proxy
+│   ├── ir-receiver.yaml           # 38kHz IR receiver
+│   └── led-matrix.yaml            # 32x8 WS2812B LED matrix
 ├── fonts/
 │   └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/
