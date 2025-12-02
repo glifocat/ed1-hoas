@@ -12,7 +12,6 @@
 #   - 6 Capacitive Touch Buttons - Binary sensors
 #   - Light Sensor - Ambient light percentage
 #   - Buzzer - Audio output via PWM
-#   - IR Receiver - 38kHz infrared remote control
 #   - Bluetooth Proxy - Extends Home Assistant BLE range
 #   - WiFi/CPU/Uptime Sensors
 #
@@ -170,24 +169,7 @@ switch:
     output: buzzer_output
 
 # ==============================================================================
-# 6. IR RECEIVER (38kHz)
-# ==============================================================================
-remote_receiver:
-  pin:
-    number: GPIO35
-    inverted: true
-  dump: all
-  on_nec:
-    then:
-      - lambda: |-
-          ESP_LOGI("IR", "NEC: address=0x%04X, command=0x%04X", x.address, x.command);
-  on_samsung:
-    then:
-      - lambda: |-
-          ESP_LOGI("IR", "Samsung: data=0x%08X", x.data);
-
-# ==============================================================================
-# 7. BLUETOOTH PROXY
+# 6. BLUETOOTH PROXY
 # ==============================================================================
 esp32_ble_tracker:
   scan_parameters:
@@ -198,7 +180,7 @@ bluetooth_proxy:
   active: true
 
 # ==============================================================================
-# 8. TOUCH BUTTONS
+# 7. TOUCH BUTTONS
 # ==============================================================================
 esp32_touch:
   setup_mode: false
@@ -253,7 +235,7 @@ binary_sensor:
       - logger.log: "Button X PRESSED"
 
 # ==============================================================================
-# 9. SENSORS
+# 8. SENSORS
 # ==============================================================================
 sensor:
   - platform: wifi_signal
@@ -285,7 +267,7 @@ text_sensor:
       id: wifi_ip
 
 # ==============================================================================
-# 10. TEXT INPUT FOR LED MATRIX
+# 9. TEXT INPUT FOR LED MATRIX
 # ==============================================================================
 text:
   - platform: template
