@@ -1,0 +1,64 @@
+# ==============================================================================
+# ED1 Buttons Package - Capacitive touch buttons
+# ==============================================================================
+# Basic button configuration with beep sounds
+# Override on_press in main config using !extend for custom behavior
+# ==============================================================================
+
+esp32_touch:
+  setup_mode: false
+
+binary_sensor:
+  - platform: esp32_touch
+    id: btn_up
+    name: "ED1 Button Up"
+    pin: GPIO4
+    threshold: 500
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Up PRESSED"
+
+  - platform: esp32_touch
+    id: btn_down
+    name: "ED1 Button Down"
+    pin: GPIO13
+    threshold: 500
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Down PRESSED"
+
+  - platform: esp32_touch
+    id: btn_left
+    name: "ED1 Button Left"
+    pin: GPIO2
+    threshold: 500
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Left PRESSED"
+
+  - platform: esp32_touch
+    id: btn_right
+    name: "ED1 Button Right"
+    pin: GPIO27
+    threshold: 500
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Right PRESSED"
+
+  - platform: esp32_touch
+    id: btn_ok
+    name: "ED1 Button OK"
+    pin: GPIO15
+    threshold: 500
+    on_press:
+      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
+      - logger.log: "Button OK PRESSED"
+
+  - platform: esp32_touch
+    id: btn_x
+    name: "ED1 Button X"
+    pin: GPIO14
+    threshold: 500
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - logger.log: "Button X PRESSED"

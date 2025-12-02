@@ -1,11 +1,8 @@
 # ==============================================================================
-# ED1 Rev 2.3 - Modular ESPHome Configuration (with IR Receiver)
+# ED1 Status Display - Modular ESPHome Configuration
 # ==============================================================================
 #
-# A status display with IR receiver functionality.
-# - Shows WiFi, sensors, and system info on TFT display
-# - Receives IR remote control signals
-# - Acts as Bluetooth proxy for Home Assistant
+# A status display showing WiFi, sensors, and system info.
 #
 # Usage:
 #   1. Copy this file and rename (e.g., ed1-kitchen.yaml)
@@ -15,9 +12,9 @@
 # ==============================================================================
 
 substitutions:
-  device_name: ed1-rev23-a
-  friendly_name: ED1 Rev 2.3 A
-  ap_ssid: ED1-Rev23-Rescue
+  device_name: ed1-status
+  friendly_name: ED1 Status Display
+  ap_ssid: ED1-Status-Rescue
 
 packages:
   core: !include packages/core.yaml
@@ -28,7 +25,6 @@ packages:
   buttons: !include packages/buttons.yaml
   sensors: !include packages/sensors.yaml
   bluetooth: !include packages/bluetooth.yaml
-  ir_receiver: !include packages/ir-receiver.yaml
 
 # Startup animation
 esphome:

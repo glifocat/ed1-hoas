@@ -1,0 +1,46 @@
+# ==============================================================================
+# ED1 LED Matrix Package - 32x8 WS2812B LED matrix (256 LEDs)
+# ==============================================================================
+
+light:
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
+    chipset: WS2812
+    pin: GPIO12
+    num_leds: 256
+    name: "ED1 LED Matrix"
+    id: led_matrix_light
+    default_transition_length: 0s
+    color_correct: [40%, 40%, 40%]
+
+display:
+  - platform: addressable_light
+    id: led_matrix_display
+    addressable_light_id: led_matrix_light
+    width: 32
+    height: 8
+    pixel_mapper: |-
+      if (x % 2 == 0) return (x * 8) + y;
+      return (x * 8) + (7 - y);
+    update_interval: 50ms
+    lambda: |-
+      auto v = id(led_matrix_light).current_values;
+      auto c = Color(
+        v.get_red() * 255.0f,
+        v.get_green() * 255.0f,
+        v.get_blue() * 255.0f
+      );
+
+      it.fill(Color(0, 0, 0));
+      if (id(matrix_text_input).state != "") {
+        it.print(0, 0, id(pixel_font), c, id(matrix_text_input).state.c_str());
+      }
+
+text:
+  - platform: template
+    name: "ED1 Matrix Text"
+    id: matrix_text_input
+    optimistic: true
+    min_length: 0
+    max_length: 20
+    mode: text

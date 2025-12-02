@@ -1,0 +1,39 @@
+# ==============================================================================
+# ED1 Core Package - Base configuration
+# ==============================================================================
+# Includes: ESP32 board, logger, API, OTA, WiFi, captive_portal
+#
+# Required substitutions:
+#   - device_name: The ESPHome device name (e.g., ed1-kitchen)
+#   - friendly_name: Human-readable name (e.g., ED1 Kitchen)
+#   - ap_ssid: Fallback AP SSID (e.g., ED1-Kitchen-Rescue)
+# ==============================================================================
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: ${ap_ssid}
+    password: !secret fallback_ap_password
+
+captive_portal:
