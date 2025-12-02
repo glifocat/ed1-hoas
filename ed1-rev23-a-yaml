@@ -1,3 +1,23 @@
+# ==============================================================================
+# ED1 Citilab Board - ESPHome Configuration
+# ==============================================================================
+#
+# Project: Sample configuration with LED Matrix display
+# Board: ED1 Rev 2.3 (Citilab Edutec)
+# Purpose: Home Assistant integration for the ED1 educational ESP32 board
+#
+# This is a sample project. You can create multiple configurations for
+# different use cases by copying this file and changing the device name.
+#
+# Additional Components:
+#   - NeoPixel LED Matrix: 32x8 (256 LEDs) connected to GPIO12
+#     Model: WS2812B panel in serpentine wiring pattern
+#
+# Documentation: https://github.com/glifocat/ed1-hoas
+# License: Apache 2.0
+#
+# ==============================================================================
+
 esphome:
   name: ed1-rev23-a
   friendly_name: ED1 Rev 2.3 A
