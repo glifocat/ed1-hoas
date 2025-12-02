@@ -1,0 +1,232 @@
+esphome:
+  name: ed1-rev23-a
+  friendly_name: ED1 Rev 2.3 A
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO # Bajamos a INFO para reducir ruido
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "ED1-Rev23-Rescue"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+# ==========================================
+# 1. HARDWARE BÁSICO (SPI + I2C)
+# ==========================================
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  id: bus_i2c
+
+font:
+  - file: "pixelmix.ttf"
+    id: fuente_pixel
+    size: 8
+  - file: "pixelmix.ttf"
+    id: fuente_grande
+    size: 16
+
+# ==========================================
+# 2. PANTALLAS (TFT & MATRIZ LED)
+# ==========================================
+display:
+  - platform: st7735
+    id: pantalla_interna
+    cs_pin: GPIO5
+    dc_pin: GPIO9
+    reset_pin: GPIO10
+    rotation: 0
+    model: "INITR_GREENTAB"
+    col_start: 2
+    row_start: 1
+    device_width: 128
+    device_height: 128
+    update_interval: 1s
+    lambda: |-
+      auto NEGRO = Color(0, 0, 0);
+      auto BLANCO = Color(255, 255, 255);
+      auto VERDE = Color(0, 255, 0);
+      auto AMARILLO = Color(255, 255, 0);
+      auto GRIS = Color(100, 100, 100);
+
+      it.fill(NEGRO);
+      it.print(64, 5, id(fuente_grande), VERDE, TextAlign::TOP_CENTER, "ED1 PRO");
+      it.print(64, 30, id(fuente_pixel), BLANCO, TextAlign::TOP_CENTER, id(wifi_ip).state.c_str());
+      it.printf(64, 50, id(fuente_pixel), BLANCO, TextAlign::TOP_CENTER, "T:%.1f C", id(temp_cpu).state);
+
+      if (id(mi_texto_input).state != "") {
+        it.print(64, 75, id(fuente_grande), AMARILLO, TextAlign::TOP_CENTER, id(mi_texto_input).state.c_str());
+      } else {
+        it.print(64, 75, id(fuente_pixel), GRIS, TextAlign::TOP_CENTER, "Matriz Lista");
+      }
+
+  - platform: addressable_light
+    id: led_matrix_display
+    addressable_light_id: led_matrix_light
+    width: 32
+    height: 8
+    pixel_mapper: |-
+      if (x % 2 == 0) return (x * 8) + y;
+      return (x * 8) + (7 - y);
+    update_interval: 50ms
+    lambda: |-
+      auto v = id(led_matrix_light).current_values;
+      auto c = Color(
+        v.get_red() * 255.0f,
+        v.get_green() * 255.0f,
+        v.get_blue() * 255.0f
+      );
+
+      it.fill(Color(0, 0, 0));
+      if (id(mi_texto_input).state != "") {
+        it.print(0, 0, id(fuente_pixel), c, id(mi_texto_input).state.c_str());
+      }
+
+# ==========================================
+# 3. MATRIZ LED (NEOPIXEL)
+# ==========================================
+light:
+  - platform: neopixelbus
+    type: GRB
+    variant: WS2812X
+    pin: GPIO12
+    num_leds: 256
+    name: "ED1 Luz Matriz"
+    id: led_matrix_light
+    method: esp32_rmt
+    default_transition_length: 0s
+    color_correct: [40%, 40%, 40%]
+
+# ==========================================
+# 4. BLUETOOTH PROXY
+# ==========================================
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+
+bluetooth_proxy:
+  active: true
+
+# ==========================================
+# 5. BOTONES TÁCTILES (ya sin spam)
+# ==========================================
+esp32_touch:
+  setup_mode: false # <--- apagamos modo debug
+
+binary_sensor:
+  # Valores idle que vimos ~530–535 → probamos threshold 500
+  - platform: esp32_touch
+    id: btn_up
+    name: "ED1 Botón Arriba"
+    pin: GPIO4
+    threshold: 500
+    on_press:
+      - logger.log: "Botón Arriba PRESSED"
+
+  - platform: esp32_touch
+    id: btn_down
+    name: "ED1 Botón Abajo"
+    pin: GPIO13
+    threshold: 500
+    on_press:
+      - logger.log: "Botón Abajo PRESSED"
+
+  - platform: esp32_touch
+    id: btn_left
+    name: "ED1 Botón Izquierda"
+    pin: GPIO2
+    threshold: 500
+    on_press:
+      - logger.log: "Botón Izquierda PRESSED"
+
+  - platform: esp32_touch
+    id: btn_right
+    name: "ED1 Botón Derecha"
+    pin: GPIO27
+    threshold: 500
+    on_press:
+      - logger.log: "Botón Derecha PRESSED"
+
+  - platform: esp32_touch
+    id: btn_ok
+    name: "ED1 Botón OK"
+    pin: GPIO15
+    threshold: 500
+    on_press:
+      - logger.log: "Botón OK PRESSED"
+
+  - platform: esp32_touch
+    id: btn_x
+    name: "ED1 Botón X"
+    pin: GPIO14
+    threshold: 500
+    on_press:
+      - logger.log: "Botón X PRESSED"
+
+# ==========================================
+# 6. SENSORES
+# ==========================================
+sensor:
+  - platform: wifi_signal
+    name: "ED1 Señal WiFi"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "ED1 Tiempo Encendido"
+
+  - platform: internal_temperature
+    name: "ED1 Temperatura CPU"
+    id: temp_cpu
+
+  - platform: adc
+    pin: GPIO34
+    name: "ED1 Luz (%)"
+    id: light_sensor
+    attenuation: 12db
+    update_interval: 1s
+    unit_of_measurement: "%"
+    device_class: ""
+    filters:
+      - multiply: 30.3 # 0–3.3V aprox → 0–100 %
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "ED1 IP Address"
+      id: wifi_ip
+
+# ==========================================
+# 7. TEXTO DESDE HOME ASSISTANT
+# ==========================================
+text:
+  - platform: template
+    name: "Escribir en Matriz"
+    id: mi_texto_input
+    optimistic: true
+    min_length: 0
+    max_length: 20
+    mode: text

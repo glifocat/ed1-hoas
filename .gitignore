@@ -1,0 +1,55 @@
+# Secrets
+secrets.yaml
+
+# Original hardware documentation (large KiCad files)
+docs/ED1 2.3/
+
+# ESPHome build artifacts
+.esphome/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Build directories
+build/
+sdkconfig.old
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
