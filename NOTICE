@@ -1,0 +1,35 @@
+ED1 Home Assistant Integration
+Copyright 2025 glifocat
+
+Original Creator and Maintainer: glifocat (https://github.com/glifocat)
+
+This project integrates with the ED1 Citilab educational board.
+Contributions are welcome under the Apache License 2.0.
+
+Third-Party Attributions
+========================
+
+ED1 Board Hardware
+------------------
+The ED1 board was designed by Citilab Edutec (https://citilab.eu).
+Hardware schematics and design files are property of Citilab.
+
+Pixelmix Font
+-------------
+The Pixelmix font (fonts/pixelmix/) is created by Andrew Tyler
+and is licensed under CC BY-NC-ND 3.0 US.
+Website: https://www.andrewtyler.net
+License: http://creativecommons.org/licenses/by-nc-nd/3.0/us/
+
+Note: The Pixelmix font has a separate non-commercial license.
+See fonts/pixelmix/license.txt for details.
+
+ESPHome
+-------
+This project uses ESPHome (https://esphome.io), licensed under
+the Apache License 2.0.
+
+Home Assistant
+--------------
+This project integrates with Home Assistant (https://www.home-assistant.io),
+licensed under the Apache License 2.0.

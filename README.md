@@ -27,7 +27,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 - [Home Assistant](https://www.home-assistant.io/) with [ESPHome Add-on](https://esphome.io/guides/getting_started_hassio.html)
 - ED1 Citilab Board (Rev 2.3)
 - USB-C cable
-- `pixelmix.ttf` font file (place in ESPHome config directory)
+- [CP210x USB Driver](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers) (required for USB communication)
 
 ## Quick Start
 
@@ -64,7 +64,8 @@ ed1-hoas/
 ├── ed1-rev23-a.yaml      # Main ESPHome configuration
 ├── secrets.yaml          # Your credentials (git-ignored)
 ├── secrets.yaml.sample   # Template for secrets
-├── pixelmix.ttf          # Font for displays
+├── fonts/
+│   └── pixelmix/         # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/
 │   ├── HARDWARE.md       # Hardware reference
 │   ├── PINOUT.md         # GPIO mapping
@@ -101,12 +102,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the Apache License 2.0 - see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
 
 ## Credits
 
+- **Created & Maintained by**: [glifocat](https://github.com/glifocat)
 - **ED1 Board**: [Citilab Edutec](https://citilab.eu)
 - **ESPHome**: [esphome.io](https://esphome.io)
+- **Pixelmix Font**: [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
 
 ## Links
 
