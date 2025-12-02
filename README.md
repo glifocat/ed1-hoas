@@ -117,6 +117,7 @@ This project is licensed under the Apache License 2.0 - see [LICENSE](LICENSE) a
 ## Credits
 
 - **Created & Maintained by**: [glifocat](https://github.com/glifocat)
+- **Original Hardware Documentation & Advice**: [vcasado](https://github.com/vcasado)
 - **ED1 Board**: [Citilab Edutec](https://citilab.eu)
 - **ESPHome**: [esphome.io](https://esphome.io)
 - **Pixelmix Font**: [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
