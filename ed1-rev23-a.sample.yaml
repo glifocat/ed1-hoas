@@ -31,6 +31,12 @@
 esphome:
   name: ed1-rev23-a
   friendly_name: ED1 Rev 2.3 A
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - delay: 3s
+      - lambda: 'id(boot_complete) = true;'
 
 esp32:
   board: esp32dev
@@ -56,6 +62,11 @@ wifi:
     password: !secret fallback_ap_password
 
 captive_portal:
+
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
 
 # ==============================================================================
 # 1. HARDWARE BUSES (SPI + I2C)
@@ -118,6 +129,13 @@ display:
 
       it.fill(BLACK);
 
+      // Boot splash screen
+      if (!id(boot_complete)) {
+        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
+        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        return;
+      }
+
       // Title (y=4)
       it.print(64, 4, id(large_font), GREEN, TextAlign::TOP_CENTER, "ED1");
 
@@ -159,11 +177,25 @@ output:
     pin: GPIO26
     id: buzzer_output
 
-switch:
-  - platform: output
-    name: "ED1 Buzzer"
-    id: buzzer_switch
-    output: buzzer_output
+rtttl:
+  output: buzzer_output
+  id: buzzer_rtttl
+
+button:
+  - platform: template
+    name: "ED1 Beep"
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+
+  - platform: template
+    name: "ED1 Alert"
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+
+  - platform: template
+    name: "ED1 Success"
+    on_press:
+      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
 
 # ==============================================================================
 # 5. IR RECEIVER (38kHz)
@@ -206,6 +238,7 @@ binary_sensor:
     pin: GPIO4
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Up PRESSED"
 
   - platform: esp32_touch
@@ -214,6 +247,7 @@ binary_sensor:
     pin: GPIO13
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Down PRESSED"
 
   - platform: esp32_touch
@@ -222,6 +256,7 @@ binary_sensor:
     pin: GPIO2
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Left PRESSED"
 
   - platform: esp32_touch
@@ -230,6 +265,7 @@ binary_sensor:
     pin: GPIO27
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Right PRESSED"
 
   - platform: esp32_touch
@@ -238,6 +274,7 @@ binary_sensor:
     pin: GPIO15
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button OK PRESSED"
 
   - platform: esp32_touch
@@ -246,6 +283,7 @@ binary_sensor:
     pin: GPIO14
     threshold: 500
     on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button X PRESSED"
 
 # ==============================================================================
