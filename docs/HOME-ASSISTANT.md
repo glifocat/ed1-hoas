@@ -10,39 +10,49 @@ After adding the device, these entities become available:
 
 | Entity ID | Type | Description |
 |-----------|------|-------------|
-| `light.ed1_luz_matriz` | RGB Light | 32x8 LED matrix |
+| `light.ed1_led_matrix` | RGB Light | 32x8 LED matrix |
+
+### Switches
+
+| Entity ID | Type | Description |
+|-----------|------|-------------|
+| `switch.ed1_buzzer` | Switch | Buzzer on/off control |
 
 ### Sensors
 
 | Entity ID | Type | Unit | Description |
 |-----------|------|------|-------------|
-| `sensor.ed1_luz` | Sensor | % | Ambient light level |
-| `sensor.ed1_senal_wifi` | Sensor | dBm | WiFi signal strength |
-| `sensor.ed1_temperatura_cpu` | Sensor | °C | ESP32 internal temperature |
-| `sensor.ed1_tiempo_encendido` | Sensor | s | Device uptime |
+| `sensor.ed1_light_level` | Sensor | % | Ambient light level |
+| `sensor.ed1_wifi_signal` | Sensor | dBm | WiFi signal strength |
+| `sensor.ed1_cpu_temperature` | Sensor | °C | ESP32 internal temperature |
+| `sensor.ed1_uptime` | Sensor | s | Device uptime |
 
 ### Binary Sensors (Touch Buttons)
 
 | Entity ID | Type | Description |
 |-----------|------|-------------|
-| `binary_sensor.ed1_boton_arriba` | Binary Sensor | Up button |
-| `binary_sensor.ed1_boton_abajo` | Binary Sensor | Down button |
-| `binary_sensor.ed1_boton_izquierda` | Binary Sensor | Left button |
-| `binary_sensor.ed1_boton_derecha` | Binary Sensor | Right button |
-| `binary_sensor.ed1_boton_ok` | Binary Sensor | OK button |
-| `binary_sensor.ed1_boton_x` | Binary Sensor | X button |
+| `binary_sensor.ed1_button_up` | Binary Sensor | Up button |
+| `binary_sensor.ed1_button_down` | Binary Sensor | Down button |
+| `binary_sensor.ed1_button_left` | Binary Sensor | Left button |
+| `binary_sensor.ed1_button_right` | Binary Sensor | Right button |
+| `binary_sensor.ed1_button_ok` | Binary Sensor | OK button |
+| `binary_sensor.ed1_button_x` | Binary Sensor | X button |
 
 ### Text
 
 | Entity ID | Type | Description |
 |-----------|------|-------------|
-| `text.escribir_en_matriz` | Text | Send text to LED matrix |
+| `text.ed1_matrix_text` | Text | Send text to LED matrix |
 
 ### Diagnostic
 
 | Entity ID | Type | Description |
 |-----------|------|-------------|
 | `text_sensor.ed1_ip_address` | Text Sensor | Device IP address |
+
+### IR Receiver (Logs Only)
+
+The IR receiver does not create Home Assistant entities. Received IR codes appear in the ESPHome logs and can be used to trigger automations via ESPHome actions. See [ESPHOME.md](ESPHOME.md#10-ir-receiver) for configuration details.
 
 ## Dashboard Examples
 
@@ -52,11 +62,12 @@ After adding the device, these entities become available:
 type: entities
 title: ED1 Board
 entities:
-  - entity: light.ed1_luz_matriz
-  - entity: text.escribir_en_matriz
-  - entity: sensor.ed1_luz
-  - entity: sensor.ed1_temperatura_cpu
-  - entity: sensor.ed1_senal_wifi
+  - entity: light.ed1_led_matrix
+  - entity: text.ed1_matrix_text
+  - entity: switch.ed1_buzzer
+  - entity: sensor.ed1_light_level
+  - entity: sensor.ed1_cpu_temperature
+  - entity: sensor.ed1_wifi_signal
 ```
 
 ### LED Matrix Control Card
@@ -65,11 +76,11 @@ entities:
 type: vertical-stack
 cards:
   - type: light
-    entity: light.ed1_luz_matriz
+    entity: light.ed1_led_matrix
     name: LED Matrix
   - type: entities
     entities:
-      - entity: text.escribir_en_matriz
+      - entity: text.ed1_matrix_text
         name: Display Text
 ```
 
@@ -79,17 +90,17 @@ cards:
 type: glance
 title: ED1 Buttons
 entities:
-  - entity: binary_sensor.ed1_boton_arriba
+  - entity: binary_sensor.ed1_button_up
     name: Up
-  - entity: binary_sensor.ed1_boton_abajo
+  - entity: binary_sensor.ed1_button_down
     name: Down
-  - entity: binary_sensor.ed1_boton_izquierda
+  - entity: binary_sensor.ed1_button_left
     name: Left
-  - entity: binary_sensor.ed1_boton_derecha
+  - entity: binary_sensor.ed1_button_right
     name: Right
-  - entity: binary_sensor.ed1_boton_ok
+  - entity: binary_sensor.ed1_button_ok
     name: OK
-  - entity: binary_sensor.ed1_boton_x
+  - entity: binary_sensor.ed1_button_x
     name: X
 ```
 
@@ -99,7 +110,7 @@ entities:
 type: horizontal-stack
 cards:
   - type: gauge
-    entity: sensor.ed1_luz
+    entity: sensor.ed1_light_level
     name: Light
     min: 0
     max: 100
@@ -108,7 +119,7 @@ cards:
       yellow: 20
       red: 0
   - type: gauge
-    entity: sensor.ed1_temperatura_cpu
+    entity: sensor.ed1_cpu_temperature
     name: CPU Temp
     min: 20
     max: 80
@@ -131,14 +142,14 @@ trigger:
 action:
   - service: text.set_value
     target:
-      entity_id: text.escribir_en_matriz
+      entity_id: text.ed1_matrix_text
     data:
       value: "DOOR!"
   - delay:
       seconds: 10
   - service: text.set_value
     target:
-      entity_id: text.escribir_en_matriz
+      entity_id: text.ed1_matrix_text
     data:
       value: ""
 ```
@@ -149,7 +160,7 @@ action:
 alias: "ED1 OK button toggles living room"
 trigger:
   - platform: state
-    entity_id: binary_sensor.ed1_boton_ok
+    entity_id: binary_sensor.ed1_button_ok
     to: "on"
 action:
   - service: light.toggle
@@ -163,7 +174,7 @@ action:
 alias: "ED1 Up button - next scene"
 trigger:
   - platform: state
-    entity_id: binary_sensor.ed1_boton_arriba
+    entity_id: binary_sensor.ed1_button_up
     to: "on"
 action:
   - service: input_select.select_next
@@ -177,7 +188,7 @@ action:
 alias: "Auto lights based on ED1 sensor"
 trigger:
   - platform: numeric_state
-    entity_id: sensor.ed1_luz
+    entity_id: sensor.ed1_light_level
     below: 30
 condition:
   - condition: state
@@ -199,7 +210,7 @@ trigger:
 action:
   - service: text.set_value
     target:
-      entity_id: text.escribir_en_matriz
+      entity_id: text.ed1_matrix_text
     data:
       value: "{{ now().strftime('%H:%M') }}"
 ```
@@ -214,9 +225,28 @@ trigger:
 action:
   - service: text.set_value
     target:
-      entity_id: text.escribir_en_matriz
+      entity_id: text.ed1_matrix_text
     data:
       value: "{{ state_attr('weather.home', 'temperature') }}C"
+```
+
+### Buzzer Alert on Motion
+
+```yaml
+alias: "ED1 buzzer on motion"
+trigger:
+  - platform: state
+    entity_id: binary_sensor.motion_sensor
+    to: "on"
+action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.ed1_buzzer
+  - delay:
+      milliseconds: 200
+  - service: switch.turn_off
+    target:
+      entity_id: switch.ed1_buzzer
 ```
 
 ## Scripts
@@ -232,7 +262,7 @@ flash_ed1_alert:
         sequence:
           - service: light.turn_on
             target:
-              entity_id: light.ed1_luz_matriz
+              entity_id: light.ed1_led_matrix
             data:
               rgb_color: [255, 0, 0]
               brightness: 255
@@ -240,7 +270,7 @@ flash_ed1_alert:
               milliseconds: 200
           - service: light.turn_off
             target:
-              entity_id: light.ed1_luz_matriz
+              entity_id: light.ed1_led_matrix
           - delay:
               milliseconds: 200
 ```
@@ -253,21 +283,21 @@ ed1_color_cycle:
   sequence:
     - service: light.turn_on
       target:
-        entity_id: light.ed1_luz_matriz
+        entity_id: light.ed1_led_matrix
       data:
         rgb_color: [255, 0, 0]
     - delay:
         seconds: 1
     - service: light.turn_on
       target:
-        entity_id: light.ed1_luz_matriz
+        entity_id: light.ed1_led_matrix
       data:
         rgb_color: [0, 255, 0]
     - delay:
         seconds: 1
     - service: light.turn_on
       target:
-        entity_id: light.ed1_luz_matriz
+        entity_id: light.ed1_led_matrix
       data:
         rgb_color: [0, 0, 255]
 ```

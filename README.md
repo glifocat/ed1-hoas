@@ -45,10 +45,10 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 3. **Copy to ESPHome**
 
    Choose a sample configuration:
-   - `samples/ed1-full-features.sample.yaml` - All features (recommended)
+   - `ed1-full-features.sample.yaml` - All features (recommended)
    - `ed1-rev23-a.sample.yaml` - Minimal configuration
 
-   Copy your chosen sample and `secrets.yaml` to your ESPHome config directory.
+   Copy your chosen sample, `secrets.yaml`, and the `fonts/` folder to your ESPHome config directory.
 
 4. **Install on device**
 
@@ -65,20 +65,19 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 ```
 ed1-hoas/
-├── samples/
-│   └── ed1-full-features.sample.yaml  # All features enabled
-├── ed1-rev23-a.sample.yaml   # Minimal sample configuration
-├── secrets.sample.yaml       # Template for secrets
-├── secrets.yaml              # Your credentials (git-ignored)
+├── ed1-full-features.sample.yaml  # All features enabled (recommended)
+├── ed1-rev23-a.sample.yaml        # Minimal sample configuration
+├── secrets.sample.yaml            # Template for secrets
+├── secrets.yaml                   # Your credentials (git-ignored)
 ├── fonts/
-│   └── pixelmix/             # Pixelmix font (CC BY-NC-ND 3.0)
+│   └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/
-│   ├── HARDWARE.md           # Hardware reference
-│   ├── PINOUT.md             # GPIO mapping
-│   ├── ESPHOME.md            # Configuration guide
-│   ├── HOME-ASSISTANT.md     # Integration guide
-│   ├── images/               # Board images
-│   └── datasheets/           # Component PDFs
+│   ├── HARDWARE.md                # Hardware reference
+│   ├── PINOUT.md                  # GPIO mapping
+│   ├── ESPHOME.md                 # Configuration guide
+│   ├── HOME-ASSISTANT.md          # Integration guide
+│   ├── images/                    # Board images
+│   └── datasheets/                # Component PDFs
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
