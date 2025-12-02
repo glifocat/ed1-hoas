@@ -8,7 +8,7 @@ Detailed explanation of the ESPHome configuration for the ED1 board.
 ed1-hoas/
 ├── ed1-rev23-a.yaml      # Main configuration
 ├── secrets.yaml          # Credentials (git-ignored)
-├── secrets.yaml.sample   # Template
+├── secrets.sample.yaml   # Template
 └── pixelmix.ttf          # Font file
 ```
 
@@ -16,7 +16,7 @@ ed1-hoas/
 
 1. Copy the sample file:
    ```bash
-   cp secrets.yaml.sample secrets.yaml
+   cp secrets.sample.yaml secrets.yaml
    ```
 
 2. Edit `secrets.yaml` with your values:

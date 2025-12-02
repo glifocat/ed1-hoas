@@ -38,7 +38,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 2. **Configure secrets**
    ```bash
-   cp secrets.yaml.sample secrets.yaml
+   cp secrets.sample.yaml secrets.yaml
    # Edit secrets.yaml with your credentials
    ```
 
@@ -63,7 +63,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 ed1-hoas/
 ├── ed1-rev23-a.yaml      # Main ESPHome configuration
 ├── secrets.yaml          # Your credentials (git-ignored)
-├── secrets.yaml.sample   # Template for secrets
+├── secrets.sample.yaml   # Template for secrets
 ├── fonts/
 │   └── pixelmix/         # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/

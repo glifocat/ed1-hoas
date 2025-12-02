@@ -47,7 +47,7 @@ The ESPHome YAML is organized into numbered sections:
 
 ### Secrets
 
-Credentials are stored in `secrets.yaml` (git-ignored). Use `secrets.yaml.sample` as template. Reference with `!secret key_name` syntax.
+Credentials are stored in `secrets.yaml` (git-ignored). Use `secrets.sample.yaml` as template. Reference with `!secret key_name` syntax.
 
 ## Hardware Documentation
 
