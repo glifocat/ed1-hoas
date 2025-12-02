@@ -11,14 +11,14 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 - **32x8 LED Matrix** (WS2812) - Controllable from Home Assistant
 - **6 Capacitive Touch Buttons** - Exposed as binary sensors
 - **Light Sensor** - Ambient light percentage
+- **Buzzer** - PWM audio output
+- **IR Receiver** (38kHz) - Remote control support
 - **Bluetooth Proxy** - Extends Home Assistant BLE range
 - **WiFi Signal & Uptime Sensors**
 - **CPU Temperature Monitoring**
 
 ### Planned (Hardware Available)
 - Accelerometer (MXC6655XA)
-- IR Receiver (38kHz)
-- Buzzer/Speaker
 - Stepper Motor Control (2x 28BYJ-48)
 - I/O Expander (MCP23009)
 
@@ -44,7 +44,11 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 3. **Copy to ESPHome**
 
-   Copy `ed1-rev23-a.yaml` and `secrets.yaml` to your ESPHome configuration directory.
+   Choose a sample configuration:
+   - `samples/ed1-full-features.sample.yaml` - All features (recommended)
+   - `ed1-rev23-a.sample.yaml` - Minimal configuration
+
+   Copy your chosen sample and `secrets.yaml` to your ESPHome config directory.
 
 4. **Install on device**
 
@@ -61,18 +65,20 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 ```
 ed1-hoas/
-├── ed1-rev23-a.yaml      # Main ESPHome configuration
-├── secrets.yaml          # Your credentials (git-ignored)
-├── secrets.sample.yaml   # Template for secrets
+├── samples/
+│   └── ed1-full-features.sample.yaml  # All features enabled
+├── ed1-rev23-a.sample.yaml   # Minimal sample configuration
+├── secrets.sample.yaml       # Template for secrets
+├── secrets.yaml              # Your credentials (git-ignored)
 ├── fonts/
-│   └── pixelmix/         # Pixelmix font (CC BY-NC-ND 3.0)
+│   └── pixelmix/             # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/
-│   ├── HARDWARE.md       # Hardware reference
-│   ├── PINOUT.md         # GPIO mapping
-│   ├── ESPHOME.md        # Configuration guide
-│   ├── HOME-ASSISTANT.md # Integration guide
-│   ├── images/           # Board images
-│   └── datasheets/       # Component PDFs
+│   ├── HARDWARE.md           # Hardware reference
+│   ├── PINOUT.md             # GPIO mapping
+│   ├── ESPHOME.md            # Configuration guide
+│   ├── HOME-ASSISTANT.md     # Integration guide
+│   ├── images/               # Board images
+│   └── datasheets/           # Component PDFs
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
@@ -88,13 +94,14 @@ ed1-hoas/
 
 | Entity | Type | Description |
 |--------|------|-------------|
-| `light.ed1_luz_matriz` | Light | LED matrix with RGB control |
-| `text.escribir_en_matriz` | Text | Send text to LED matrix |
-| `binary_sensor.ed1_boton_*` | Binary Sensor | Touch buttons (6x) |
-| `sensor.ed1_luz` | Sensor | Light level (%) |
-| `sensor.ed1_senal_wifi` | Sensor | WiFi signal strength |
-| `sensor.ed1_temperatura_cpu` | Sensor | CPU temperature |
-| `sensor.ed1_tiempo_encendido` | Sensor | Device uptime |
+| `light.ed1_led_matrix` | Light | LED matrix with RGB control |
+| `text.ed1_matrix_text` | Text | Send text to LED matrix |
+| `binary_sensor.ed1_button_*` | Binary Sensor | Touch buttons (up/down/left/right/ok/x) |
+| `sensor.ed1_light_level` | Sensor | Light level (%) |
+| `sensor.ed1_wifi_signal` | Sensor | WiFi signal strength |
+| `sensor.ed1_cpu_temperature` | Sensor | CPU temperature |
+| `sensor.ed1_uptime` | Sensor | Device uptime |
+| `switch.ed1_buzzer` | Switch | Buzzer on/off control |
 
 ## Contributing
 
