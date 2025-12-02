@@ -1,17 +1,21 @@
 # ==============================================================================
-# ED1 Citilab Board - ESPHome Configuration (Sample)
+# ED1 Citilab Board - ESPHome Configuration (Minimal Sample)
 # ==============================================================================
 #
-# Project: Sample configuration with LED Matrix display
+# Project: Minimal configuration with built-in ED1 features only
 # Board: ED1 Rev 2.3 (Citilab Edutec)
 # Purpose: Home Assistant integration for the ED1 educational ESP32 board
 #
-# This is a sample project. You can create multiple configurations for
-# different use cases by copying this file and changing the device name.
+# This sample includes ONLY built-in ED1 hardware:
+#   - 1.44" TFT Display (ST7735)
+#   - 6 Capacitive Touch Buttons
+#   - Light Sensor
+#   - Buzzer
+#   - IR Receiver (38kHz)
+#   - Bluetooth Proxy
 #
-# Additional Components:
-#   - NeoPixel LED Matrix: 32x8 (256 LEDs) connected to GPIO12
-#     Model: WS2812B panel in serpentine wiring pattern
+# For external accessories (LED Matrix), see:
+#   ed1-full-features.sample.yaml
 #
 # Usage:
 #   1. Copy this file and rename (e.g., ed1-kitchen.yaml, ed1-office.yaml)
@@ -34,7 +38,7 @@ esp32:
     type: arduino
 
 logger:
-  level: INFO # Reduce to INFO to minimize log noise
+  level: INFO
 
 api:
   encryption:
@@ -53,9 +57,9 @@ wifi:
 
 captive_portal:
 
-# ==========================================
-# 1. HARDWARE BASICS (SPI + I2C)
-# ==========================================
+# ==============================================================================
+# 1. HARDWARE BUSES (SPI + I2C)
+# ==============================================================================
 spi:
   clk_pin: GPIO18
   mosi_pin: GPIO23
@@ -67,6 +71,9 @@ i2c:
   scan: true
   id: bus_i2c
 
+# ==============================================================================
+# 2. FONTS
+# ==============================================================================
 font:
   - file: "fonts/pixelmix/pixelmix.ttf"
     id: pixel_font
@@ -74,10 +81,19 @@ font:
   - file: "fonts/pixelmix/pixelmix.ttf"
     id: large_font
     size: 16
+  - file: "gfonts://Material+Symbols+Outlined"
+    id: icons_16
+    size: 16
+    glyphs:
+      - "\U0000e63e" # wifi
+      - "\U0000e1ff" # device_thermostat
+      - "\U0000e518" # light_mode
+      - "\U0000e8b5" # schedule
+      - "\U0000e870" # lan (network)
 
-# ==========================================
-# 2. DISPLAYS (TFT & LED MATRIX)
-# ==========================================
+# ==============================================================================
+# 3. TFT DISPLAY (ST7735 128x128)
+# ==============================================================================
 display:
   - platform: st7735
     id: internal_display
@@ -92,63 +108,83 @@ display:
     device_height: 128
     update_interval: 1s
     lambda: |-
+      // Colors
       auto BLACK = Color(0, 0, 0);
       auto WHITE = Color(255, 255, 255);
       auto GREEN = Color(0, 255, 0);
+      auto CYAN = Color(0, 255, 255);
       auto YELLOW = Color(255, 255, 0);
-      auto GRAY = Color(100, 100, 100);
+      auto ORANGE = Color(255, 165, 0);
 
       it.fill(BLACK);
-      it.print(64, 5, id(large_font), GREEN, TextAlign::TOP_CENTER, "ED1 PRO");
-      it.print(64, 30, id(pixel_font), WHITE, TextAlign::TOP_CENTER, id(wifi_ip).state.c_str());
-      it.printf(64, 50, id(pixel_font), WHITE, TextAlign::TOP_CENTER, "T:%.1f C", id(cpu_temp).state);
 
-      if (id(matrix_text_input).state != "") {
-        it.print(64, 75, id(large_font), YELLOW, TextAlign::TOP_CENTER, id(matrix_text_input).state.c_str());
+      // Title (y=4)
+      it.print(64, 4, id(large_font), GREEN, TextAlign::TOP_CENTER, "ED1");
+
+      // IP Address (y=24)
+      it.print(4, 24, id(icons_16), CYAN, "\U0000e870");
+      it.print(22, 28, id(pixel_font), WHITE, id(wifi_ip).state.c_str());
+
+      // WiFi signal (y=44)
+      it.print(4, 44, id(icons_16), CYAN, "\U0000e63e");
+      it.printf(22, 48, id(pixel_font), WHITE, "%.0f dBm", id(wifi_signal_sensor).state);
+
+      // Light sensor (y=64)
+      it.print(4, 64, id(icons_16), YELLOW, "\U0000e518");
+      it.printf(22, 68, id(pixel_font), WHITE, "%.0f%%", id(light_sensor).state);
+
+      // Temperature (y=84)
+      it.print(4, 84, id(icons_16), ORANGE, "\U0000e1ff");
+      it.printf(22, 88, id(pixel_font), WHITE, "%.0f C", id(cpu_temp).state);
+
+      // Uptime (y=104)
+      it.print(4, 104, id(icons_16), WHITE, "\U0000e8b5");
+      int seconds = (int)id(uptime_sensor).state;
+      int days = seconds / 86400;
+      int hours = (seconds % 86400) / 3600;
+      int mins = (seconds % 3600) / 60;
+      if (days > 0) {
+        it.printf(22, 108, id(pixel_font), WHITE, "%dd %dh %dm", days, hours, mins);
+      } else if (hours > 0) {
+        it.printf(22, 108, id(pixel_font), WHITE, "%dh %dm", hours, mins);
       } else {
-        it.print(64, 75, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "Matrix Ready");
+        it.printf(22, 108, id(pixel_font), WHITE, "%dm %ds", mins, seconds % 60);
       }
 
-  - platform: addressable_light
-    id: led_matrix_display
-    addressable_light_id: led_matrix_light
-    width: 32
-    height: 8
-    pixel_mapper: |-
-      if (x % 2 == 0) return (x * 8) + y;
-      return (x * 8) + (7 - y);
-    update_interval: 50ms
-    lambda: |-
-      auto v = id(led_matrix_light).current_values;
-      auto c = Color(
-        v.get_red() * 255.0f,
-        v.get_green() * 255.0f,
-        v.get_blue() * 255.0f
-      );
+# ==============================================================================
+# 4. BUZZER (PWM OUTPUT)
+# ==============================================================================
+output:
+  - platform: ledc
+    pin: GPIO26
+    id: buzzer_output
 
-      it.fill(Color(0, 0, 0));
-      if (id(matrix_text_input).state != "") {
-        it.print(0, 0, id(pixel_font), c, id(matrix_text_input).state.c_str());
-      }
+switch:
+  - platform: output
+    name: "ED1 Buzzer"
+    id: buzzer_switch
+    output: buzzer_output
 
-# ==========================================
-# 3. LED MATRIX (NEOPIXEL)
-# ==========================================
-light:
-  - platform: neopixelbus
-    type: GRB
-    variant: WS2812X
-    pin: GPIO12
-    num_leds: 256
-    name: "ED1 Matrix Light"
-    id: led_matrix_light
-    method: esp32_rmt
-    default_transition_length: 0s
-    color_correct: [40%, 40%, 40%]
+# ==============================================================================
+# 5. IR RECEIVER (38kHz)
+# ==============================================================================
+remote_receiver:
+  pin:
+    number: GPIO35
+    inverted: true
+  dump: all
+  on_nec:
+    then:
+      - lambda: |-
+          ESP_LOGI("IR", "NEC: address=0x%04X, command=0x%04X", x.address, x.command);
+  on_samsung:
+    then:
+      - lambda: |-
+          ESP_LOGI("IR", "Samsung: data=0x%08X", x.data);
 
-# ==========================================
-# 4. BLUETOOTH PROXY
-# ==========================================
+# ==============================================================================
+# 6. BLUETOOTH PROXY
+# ==============================================================================
 esp32_ble_tracker:
   scan_parameters:
     interval: 1100ms
@@ -157,14 +193,13 @@ esp32_ble_tracker:
 bluetooth_proxy:
   active: true
 
-# ==========================================
-# 5. TOUCH BUTTONS
-# ==========================================
+# ==============================================================================
+# 7. TOUCH BUTTONS
+# ==============================================================================
 esp32_touch:
-  setup_mode: false # Disable debug mode
+  setup_mode: false
 
 binary_sensor:
-  # Idle values around ~530-535, threshold set to 500
   - platform: esp32_touch
     id: btn_up
     name: "ED1 Button Up"
@@ -213,16 +248,18 @@ binary_sensor:
     on_press:
       - logger.log: "Button X PRESSED"
 
-# ==========================================
-# 6. SENSORS
-# ==========================================
+# ==============================================================================
+# 8. SENSORS
+# ==============================================================================
 sensor:
   - platform: wifi_signal
     name: "ED1 WiFi Signal"
+    id: wifi_signal_sensor
     update_interval: 60s
 
   - platform: uptime
     name: "ED1 Uptime"
+    id: uptime_sensor
 
   - platform: internal_temperature
     name: "ED1 CPU Temperature"
@@ -230,29 +267,17 @@ sensor:
 
   - platform: adc
     pin: GPIO34
-    name: "ED1 Light (%)"
+    name: "ED1 Light Level"
     id: light_sensor
     attenuation: 12db
     update_interval: 1s
     unit_of_measurement: "%"
     device_class: ""
     filters:
-      - multiply: 30.3 # Scale 0-3.3V to approx 0-100%
+      - multiply: 30.3
 
 text_sensor:
   - platform: wifi_info
     ip_address:
       name: "ED1 IP Address"
       id: wifi_ip
-
-# ==========================================
-# 7. TEXT INPUT FROM HOME ASSISTANT
-# ==========================================
-text:
-  - platform: template
-    name: "Write to Matrix"
-    id: matrix_text_input
-    optimistic: true
-    min_length: 0
-    max_length: 20
-    mode: text
