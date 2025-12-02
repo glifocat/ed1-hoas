@@ -12,12 +12,12 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 - **6 Capacitive Touch Buttons** - Exposed as binary sensors
 - **Light Sensor** - Ambient light percentage
 - **Buzzer** - PWM audio output
+- **IR Receiver** (38kHz) - Remote control support
 - **Bluetooth Proxy** - Extends Home Assistant BLE range
 - **WiFi Signal & Uptime Sensors**
 - **CPU Temperature Monitoring**
 
 ### Planned (Hardware Available)
-- IR Receiver (38kHz) - *RMT driver conflict with LED matrix in ESP-IDF 5.5*
 - Accelerometer (MXC6655XA)
 - Stepper Motor Control (2x 28BYJ-48)
 - I/O Expander (MCP23009)
