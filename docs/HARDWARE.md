@@ -106,6 +106,7 @@ The ED1 is an ESP32-based educational development board designed by [Citilab Edu
 | Component | Part Number | Function | Notes |
 |-----------|-------------|----------|-------|
 | T1-T6 | Capacitive pads | Touch buttons | 6 buttons around display |
+| SW1 | JS102011SAQN | Power switch | Slide switch, no GPIO |
 | SW2 | PTS820 | Reset button | Hardware reset |
 | U11 | MCP23009 | I2C GPIO Expander | 8 additional GPIO @ 0x20 |
 | U7, U8 | ULN2004A | Stepper Drivers | For 28BYJ-48 motors |
@@ -141,6 +142,45 @@ The ED1 is an ESP32-based educational development board designed by [Citilab Edu
 
 ### Battery Protection
 When battery is inserted with wrong polarity, Q1 and Q2 transistors isolate the battery from the system, preventing damage.
+
+### Power Switch (SW1)
+The slide switch on the right side of the board (JS102011SAQN) connects/disconnects the battery from the power circuit. This is a purely mechanical switch with no GPIO connection.
+
+### Battery Monitoring Limitations
+
+The ED1 board has **no built-in battery monitoring capability**. The following cannot be detected programmatically:
+
+| Feature | Status | Reason |
+|---------|--------|--------|
+| Battery voltage | Not available | VBAT not connected to any ADC pin |
+| Charging status | Not available | STAT1/STAT2 only connected to LEDs |
+| USB connected | Not available | VBUS not connected to any GPIO |
+| Power switch state | Not available | Switch is mechanical only |
+
+The charger status signals (STAT1, STAT2, DONE, CHR) from the MP2607DL are routed only to LED drivers (NL7SZ97), not to ESP32 GPIOs.
+
+#### Hardware Modification for Battery Monitoring
+
+To read battery voltage, add an external voltage divider to an analog expansion port:
+
+```
+VBAT ──[100kΩ]──┬──[100kΩ]── GND
+                │
+                └── A1 port (GPIO36)
+```
+
+This divides the 3.0-4.2V battery range to ~1.5-2.1V, safe for the ESP32 ADC. ESPHome configuration:
+
+```yaml
+sensor:
+  - platform: adc
+    pin: GPIO36
+    name: "Battery Voltage"
+    attenuation: 11db
+    filters:
+      - multiply: 2.0  # Compensate for voltage divider
+    update_interval: 60s
+```
 
 ## Datasheets
 
