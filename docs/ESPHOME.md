@@ -7,6 +7,7 @@ Detailed explanation of the ESPHome configuration for the ED1 board.
 ```
 ed1-hoas/
 ├── ed1-message.sample.yaml        # Message display with chat log (recommended)
+├── ed1-mqtt.sample.yaml           # Dashboard with MQTT messaging
 ├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime)
 ├── ed1-rev23-a.sample.yaml        # Status display with IR receiver
 ├── ed1-full-features.sample.yaml  # All features (TFT + LED matrix + IR)

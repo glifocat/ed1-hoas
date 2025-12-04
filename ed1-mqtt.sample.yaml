@@ -1,0 +1,230 @@
+# ==============================================================================
+# ED1 MQTT Dashboard - Status display with MQTT messaging
+# ==============================================================================
+#
+# A dashboard showing device status with MQTT message support.
+# - Receives messages via MQTT (not Home Assistant API)
+# - Shows WiFi, CPU temp, light sensor, and uptime
+# - MQTT messages appear in the message area
+#
+# Usage:
+#   1. Copy this file and rename (e.g., ed1-kitchen.yaml)
+#   2. Update substitutions below
+#   3. Add MQTT credentials to secrets.yaml
+#   4. Run: esphome run <your-config>.yaml
+#
+# To send a message:
+#   mosquitto_pub -h BROKER -t ed1/<device_name>/message -m "Hello!"
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-mqtt
+  friendly_name: ED1 MQTT Dashboard
+  ap_ssid: ED1-MQTT-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  mqtt: !include packages/mqtt.yaml
+
+# Globals for message display
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+  - id: last_message
+    type: std::string
+    restore_value: false
+  - id: message_time
+    type: std::string
+    restore_value: false
+  - id: msg_scroll_offset
+    type: int
+    initial_value: '0'
+
+# Startup
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - delay: 2s
+      - lambda: 'id(boot_complete) = true;'
+
+# Time sync for message timestamps
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Madrid
+
+# Extend MQTT message to store and display
+text_sensor:
+  - id: !extend mqtt_message
+    on_value:
+      then:
+        - lambda: |-
+            if (x.length() > 0) {
+              id(last_message) = x;
+              id(msg_scroll_offset) = 0;  // Reset scroll on new message
+              auto time = id(sntp_time).now();
+              if (time.is_valid()) {
+                char buf[10];
+                snprintf(buf, sizeof(buf), "%02d:%02d", time.hour, time.minute);
+                id(message_time) = std::string(buf);
+              } else {
+                id(message_time) = "??:??";
+              }
+            }
+        - rtttl.play: 'notify:d=8,o=5,b=140:c6,e6'
+
+# Button handlers
+binary_sensor:
+  # Clear message with X button
+  - id: !extend btn_x
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - lambda: |-
+          id(last_message) = "";
+          id(message_time) = "";
+          id(msg_scroll_offset) = 0;
+      - logger.log: "Message cleared"
+
+  # Scroll up
+  - id: !extend btn_up
+    on_press:
+      - lambda: |-
+          if (id(msg_scroll_offset) > 0) {
+            id(msg_scroll_offset) -= 1;
+          }
+
+  # Scroll down
+  - id: !extend btn_down
+    on_press:
+      - lambda: |-
+          id(msg_scroll_offset) += 1;
+
+# Dashboard display layout
+display:
+  - id: !extend internal_display
+    lambda: |-
+      // Colors
+      auto BLACK = Color(0, 0, 0);
+      auto WHITE = Color(255, 255, 255);
+      auto GREEN = Color(0, 255, 0);
+      auto CYAN = Color(100, 200, 255);  // Lighter blue for better contrast
+      auto YELLOW = Color(255, 255, 0);
+      auto ORANGE = Color(255, 165, 0);
+      auto RED = Color(255, 0, 0);
+      auto GRAY = Color(80, 80, 80);
+
+      it.fill(BLACK);
+
+      // Boot splash
+      if (!id(boot_complete)) {
+        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
+        it.print(64, 60, id(pixel_font), CYAN, TextAlign::CENTER, "MQTT");
+        it.print(64, 80, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        return;
+      }
+
+      // === HEADER (y=0-14) ===
+      it.print(64, 2, id(pixel_font), GREEN, TextAlign::TOP_CENTER, "MQTT Dashboard");
+      it.horizontal_line(0, 14, 128, GRAY);
+
+      // === STATUS AREA (y=16-70) ===
+      int y = 18;
+      int line_h = 13;
+
+      // WiFi status
+      bool has_ip = !id(wifi_ip).state.empty();
+      if (has_ip) {
+        it.print(2, y - 2, id(icons_12), GREEN, "\U0000e63e");
+        it.printf(18, y, id(pixel_font), WHITE, "%s", id(wifi_ip).state.c_str());
+      } else {
+        it.print(2, y - 2, id(icons_12), YELLOW, "\U0000e63e");
+        it.print(18, y, id(pixel_font), YELLOW, "Connecting...");
+      }
+      y += line_h;
+
+      // Signal strength
+      int rssi = (int)id(wifi_signal_sensor).state;
+      Color sig_color = rssi > -60 ? GREEN : (rssi > -75 ? YELLOW : RED);
+      it.printf(2, y, id(pixel_font), sig_color, "Signal: %d dBm", rssi);
+      y += line_h;
+
+      // CPU Temperature
+      it.print(2, y - 2, id(icons_12), ORANGE, "\U0000e1ff");
+      it.printf(18, y, id(pixel_font), WHITE, "CPU: %.1fC", id(cpu_temp).state);
+      y += line_h;
+
+      // Light sensor
+      it.print(2, y - 2, id(icons_12), YELLOW, "\U0000e518");
+      it.printf(18, y, id(pixel_font), WHITE, "Light: %.0f%%", id(light_sensor).state);
+
+      // === MESSAGE AREA (y=72-110) ===
+      it.horizontal_line(0, 70, 128, GRAY);
+
+      if (id(last_message).empty()) {
+        it.print(64, 85, id(pixel_font), GRAY, TextAlign::CENTER, "No MQTT message");
+      } else {
+        // Timestamp
+        it.printf(64, 74, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "[%s]", id(message_time).c_str());
+
+        // Word wrap message into lines
+        std::string msg = id(last_message);
+        int max_chars = 16;
+        std::vector<std::string> lines;
+
+        while (!msg.empty()) {
+          if (msg.length() <= max_chars) {
+            lines.push_back(msg);
+            break;
+          }
+          size_t break_pos = msg.rfind(' ', max_chars);
+          if (break_pos == std::string::npos || break_pos == 0) break_pos = max_chars;
+          lines.push_back(msg.substr(0, break_pos));
+          msg = msg.substr(break_pos);
+          if (!msg.empty() && msg[0] == ' ') msg = msg.substr(1);
+        }
+
+        // Clamp scroll offset
+        int max_scroll = lines.size() > 2 ? lines.size() - 2 : 0;
+        if (id(msg_scroll_offset) > max_scroll) id(msg_scroll_offset) = max_scroll;
+
+        // Display 2 visible lines based on scroll offset
+        int offset = id(msg_scroll_offset);
+        if (offset < lines.size()) {
+          it.print(64, 85, id(message_font), CYAN, TextAlign::TOP_CENTER, lines[offset].c_str());
+        }
+        if (offset + 1 < lines.size()) {
+          it.print(64, 97, id(message_font), CYAN, TextAlign::TOP_CENTER, lines[offset + 1].c_str());
+        }
+
+        // Scroll indicators
+        if (offset > 0) {
+          it.print(120, 85, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "^");
+        }
+        if (offset < max_scroll) {
+          it.print(120, 97, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "v");
+        }
+      }
+
+      // === FOOTER (y=112-128) ===
+      it.horizontal_line(0, 112, 128, GRAY);
+
+      // Uptime
+      int uptime_s = (int)id(uptime_sensor).state;
+      int hours = uptime_s / 3600;
+      int mins = (uptime_s % 3600) / 60;
+      it.printf(4, 116, id(pixel_font), WHITE, "Up: %dh%02dm", hours, mins);
+
+      // Clear hint
+      if (!id(last_message).empty()) {
+        it.print(124, 116, id(pixel_font), RED, TextAlign::TOP_RIGHT, "[X]");
+      }
