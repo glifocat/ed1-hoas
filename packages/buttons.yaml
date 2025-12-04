@@ -11,7 +11,7 @@ esp32_touch:
 binary_sensor:
   - platform: esp32_touch
     id: btn_up
-    name: "ED1 Button Up"
+    name: "${friendly_name} Button Up"
     pin: GPIO4
     threshold: 500
     on_press:
@@ -20,7 +20,7 @@ binary_sensor:
 
   - platform: esp32_touch
     id: btn_down
-    name: "ED1 Button Down"
+    name: "${friendly_name} Button Down"
     pin: GPIO13
     threshold: 500
     on_press:
@@ -29,7 +29,7 @@ binary_sensor:
 
   - platform: esp32_touch
     id: btn_left
-    name: "ED1 Button Left"
+    name: "${friendly_name} Button Left"
     pin: GPIO2
     threshold: 500
     on_press:
@@ -38,7 +38,7 @@ binary_sensor:
 
   - platform: esp32_touch
     id: btn_right
-    name: "ED1 Button Right"
+    name: "${friendly_name} Button Right"
     pin: GPIO27
     threshold: 500
     on_press:
@@ -47,7 +47,7 @@ binary_sensor:
 
   - platform: esp32_touch
     id: btn_ok
-    name: "ED1 Button OK"
+    name: "${friendly_name} Button OK"
     pin: GPIO15
     threshold: 500
     on_press:
@@ -56,7 +56,7 @@ binary_sensor:
 
   - platform: esp32_touch
     id: btn_x
-    name: "ED1 Button X"
+    name: "${friendly_name} Button X"
     pin: GPIO14
     threshold: 500
     on_press:
