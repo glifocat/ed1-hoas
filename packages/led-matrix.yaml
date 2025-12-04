@@ -8,7 +8,7 @@ light:
     chipset: WS2812
     pin: GPIO12
     num_leds: 256
-    name: "ED1 LED Matrix"
+    name: "${friendly_name} LED Matrix"
     id: led_matrix_light
     default_transition_length: 0s
     color_correct: [40%, 40%, 40%]
@@ -38,7 +38,7 @@ display:
 
 text:
   - platform: template
-    name: "ED1 Matrix Text"
+    name: "${friendly_name} Matrix Text"
     id: matrix_text_input
     optimistic: true
     min_length: 0

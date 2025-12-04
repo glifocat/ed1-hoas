@@ -4,21 +4,21 @@
 
 sensor:
   - platform: wifi_signal
-    name: "ED1 WiFi Signal"
+    name: "${friendly_name} WiFi Signal"
     id: wifi_signal_sensor
     update_interval: 10s
 
   - platform: uptime
-    name: "ED1 Uptime"
+    name: "${friendly_name} Uptime"
     id: uptime_sensor
 
   - platform: internal_temperature
-    name: "ED1 CPU Temperature"
+    name: "${friendly_name} CPU Temperature"
     id: cpu_temp
 
   - platform: adc
     pin: GPIO34
-    name: "ED1 Light Level"
+    name: "${friendly_name} Light Level"
     id: light_sensor
     attenuation: 12db
     update_interval: 5s
@@ -30,8 +30,8 @@ sensor:
 text_sensor:
   - platform: wifi_info
     ssid:
-      name: "ED1 WiFi SSID"
+      name: "${friendly_name} WiFi SSID"
       id: wifi_ssid
     ip_address:
-      name: "ED1 IP Address"
+      name: "${friendly_name} IP Address"
       id: wifi_ip

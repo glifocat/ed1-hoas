@@ -78,7 +78,7 @@ globals:
 # Message input from Home Assistant
 text:
   - platform: template
-    name: "ED1 Display Message"
+    name: "${friendly_name} Message"
     id: display_message
     optimistic: true
     min_length: 0

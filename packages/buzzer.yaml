@@ -13,16 +13,16 @@ rtttl:
 
 button:
   - platform: template
-    name: "ED1 Beep"
+    name: "${friendly_name} Beep"
     on_press:
       - rtttl.play: 'beep:d=16,o=5,b=140:c'
 
   - platform: template
-    name: "ED1 Alert"
+    name: "${friendly_name} Alert"
     on_press:
       - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
 
   - platform: template
-    name: "ED1 Success"
+    name: "${friendly_name} Success"
     on_press:
       - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
