@@ -1,0 +1,40 @@
+# ==============================================================================
+# ED1 MQTT Package - MQTT broker connectivity
+# ==============================================================================
+# Optional package for MQTT support alongside or instead of native API.
+#
+# Required secrets:
+#   - mqtt_broker: Broker hostname or IP
+#   - mqtt_user: MQTT username
+#   - mqtt_password: MQTT password
+#
+# Topics:
+#   - ed1/${device_name}/message (subscribe) - Receive messages to display
+#   - ed1/${device_name}/status (publish) - Online/offline status
+# ==============================================================================
+
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_user
+  password: !secret mqtt_password
+  topic_prefix: ed1/${device_name}
+  birth_message:
+    topic: ed1/${device_name}/status
+    payload: online
+  will_message:
+    topic: ed1/${device_name}/status
+    payload: offline
+  log_topic: null  # Disable log publishing to save bandwidth
+
+# Subscribe to messages via MQTT
+text_sensor:
+  - platform: mqtt_subscribe
+    name: "${friendly_name} MQTT Message"
+    id: mqtt_message
+    topic: ed1/${device_name}/message
+    on_value:
+      then:
+        - lambda: |-
+            if (x.length() > 0) {
+              ESP_LOGI("MQTT", "Received message: %s", x.c_str());
+            }
