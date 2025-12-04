@@ -87,7 +87,8 @@ ed1-hoas/
 │   ├── sensors.yaml               # WiFi, uptime, temp, light sensors
 │   ├── bluetooth.yaml             # BLE tracker + proxy
 │   ├── ir-receiver.yaml           # 38kHz IR receiver
-│   └── led-matrix.yaml            # 32x8 WS2812B LED matrix
+│   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
+│   └── mqtt.yaml                  # MQTT broker connectivity (optional)
 ├── fonts/
 │   └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/

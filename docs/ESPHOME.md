@@ -22,7 +22,8 @@ ed1-hoas/
 │   ├── sensors.yaml               # WiFi, uptime, temp, light sensors
 │   ├── bluetooth.yaml             # BLE tracker + proxy
 │   ├── ir-receiver.yaml           # 38kHz IR receiver
-│   └── led-matrix.yaml            # 32x8 WS2812B LED matrix
+│   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
+│   └── mqtt.yaml                  # MQTT broker connectivity (optional)
 └── fonts/
     └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ```
@@ -258,6 +259,32 @@ bluetooth_proxy:
 ```
 
 Extends Home Assistant's Bluetooth range. The ED1 acts as a BLE relay.
+
+### MQTT (packages/mqtt.yaml)
+
+Optional package for MQTT broker connectivity. Can be used alongside or instead of the native API.
+
+```yaml
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_user
+  password: !secret mqtt_password
+  topic_prefix: ed1/${device_name}
+```
+
+**Topics:**
+- `ed1/<device_name>/message` - Subscribe to receive messages
+- `ed1/<device_name>/status` - Publishes `online`/`offline`
+
+**Usage:**
+1. Add MQTT credentials to `secrets.yaml`
+2. Include the package: `mqtt: !include packages/mqtt.yaml`
+3. Send messages via CLI: `mosquitto_pub -t ed1/ed1-message/message -m "Hello!"`
+
+**Choosing API vs MQTT:**
+- Use **native API** for Home Assistant integration (auto-discovery, encryption)
+- Use **MQTT** for multi-system integration (Node-RED, scripts, other devices)
+- Both can be used simultaneously
 
 ### Buzzer (packages/buzzer.yaml)
 
