@@ -102,21 +102,53 @@ else
 
 ## Expansion Connectors
 
-### Analog Ports (Left Side)
+### Analog Ports - J5 (Left Side)
+
+Input-only ADC pins, directly connected to ESP32. Active-low.
+
+| Port | GPIO | ADC Channel | Notes |
+|------|------|-------------|-------|
+| A1 | GPIO36 | ADC1_CH0 | SVP (Sensor VP) |
+| A2 | GPIO37 | ADC1_CH1 | - |
+| A3 | GPIO38 | ADC1_CH2 | - |
+| A4 | GPIO39 | ADC1_CH3 | SVN (Sensor VN) |
+
 ```
-A1: [S] [+] [-]    A2: [S] [+] [-]
-A3: [S] [+] [-]    A4: [S] [+] [-]
+A1: [S=GPIO36] [+=3.3V] [-=GND]
+A2: [S=GPIO37] [+=3.3V] [-=GND]
+A3: [S=GPIO38] [+=3.3V] [-=GND]
+A4: [S=GPIO39] [+=3.3V] [-=GND]
 ```
 
-### Digital Ports (Right Side)
+### Digital Ports - J2 (Right Side)
+
+| Port | GPIO | ADC Channel | Notes |
+|------|------|-------------|-------|
+| D1 | GPIO12 | ADC2_CH5 | Also LED matrix data |
+| D2 | GPIO25 | ADC2_CH8 | DAC1 |
+| D3 | GPIO32 | ADC1_CH4 | - |
+| D4 | GPIO26 | ADC2_CH9 | Also buzzer output |
+
 ```
-D1: [S] [+] [-]    D2: [S] [+] [-]
-D3: [S] [+] [-]    D4: [S] [+] [-]
+D1: [S=GPIO12] [+=5V] [-=GND]
+D2: [S=GPIO25] [+=5V] [-=GND]
+D3: [S=GPIO32] [+=5V] [-=GND]
+D4: [S=GPIO26] [+=5V] [-=GND]
 ```
 
-### I2C/Serial (Bottom Left)
+**Note:** D1 (GPIO12) and D4 (GPIO26) are used internally. D2 (GPIO25) and D3 (GPIO32) are available for external use.
+
+### I2C/Serial - J6 (Bottom Left)
+
+| Pin | Label | GPIO | Function |
+|-----|-------|------|----------|
+| 1 | DA | GPIO21 | I2C SDA |
+| 2 | CL | GPIO22 | I2C SCL |
+| 3 | TX | GPIO1 | UART TX |
+| 4 | RX | GPIO3 | UART RX |
+
 ```
-DA: [DA] [CL] [TX] [RX]
+DA: [DA=GPIO21] [CL=GPIO22] [TX=GPIO1] [RX=GPIO3]
 ```
 
 ### Grove Connector (J11)
