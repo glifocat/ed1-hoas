@@ -35,7 +35,6 @@ packages:
   buzzer: !include packages/buzzer.yaml
   buttons: !include packages/buttons.yaml
   sensors: !include packages/sensors.yaml
-  bluetooth: !include packages/bluetooth.yaml
 
 # Track HA connection
 api:

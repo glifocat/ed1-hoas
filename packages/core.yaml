@@ -23,7 +23,7 @@ logger:
 
 api:
   encryption:
-    key: !secret api_encryption_key
+    key: !secret api_encryption_key_full
 
 ota:
   - platform: esphome
@@ -32,6 +32,8 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  power_save_mode: NONE
+  fast_connect: true
   ap:
     ssid: ${ap_ssid}
     password: !secret fallback_ap_password

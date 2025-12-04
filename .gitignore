@@ -1,8 +1,9 @@
 # Secrets
 secrets.yaml
 
-# Claude Code instructions
+# AI assistant instructions
 CLAUDE.md
+GEMINI.md
 
 # Original hardware documentation (large KiCad files)
 docs/ED1 2.3/
