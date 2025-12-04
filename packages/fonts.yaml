@@ -19,6 +19,8 @@ font:
       - "\U0000e63e" # wifi
       - "\U0000e88a" # home (for HA)
       - "\U0000e0b7" # mail/message
+      - "\U0000e1ff" # device_thermostat
+      - "\U0000e518" # light_mode
   - file: "gfonts://Material+Symbols+Outlined"
     id: icons_16
     size: 16
