@@ -1,0 +1,37 @@
+# ==============================================================================
+# ED1 Display Layout Package - Screen Dimensions & Regions
+# ==============================================================================
+# Layout constants for the 128x128 TFT display.
+# Override any value in your device config's substitutions block.
+#
+# Usage in display lambda:
+#   const int W = ${display_width};
+#   it.horizontal_line(0, ${header_height}, W, MUTED);
+# ==============================================================================
+
+substitutions:
+  # Display dimensions
+  display_width: "128"
+  display_height: "128"
+
+  # Layout regions (y coordinates)
+  header_height: "20"         # Status bar height
+  footer_height: "16"         # Footer height
+  content_y: "22"             # Content area start (header + 2px)
+  footer_y: "112"             # Footer start (128 - 16)
+
+  # Spacing & padding
+  padding: "4"                # General padding
+  line_height: "14"           # Text line height
+  icon_size: "12"             # Icon dimensions
+
+  # Header element positions
+  status_dot_x: "4"           # Connection dot x
+  status_dot_y: "8"           # Connection dot y
+  time_x: "64"                # Clock x (centered)
+  time_y: "4"                 # Clock y
+  signal_x: "110"             # Signal bars x
+  signal_y: "16"              # Signal bars y (bottom-aligned)
+
+  # Footer element positions
+  footer_text_y: "116"        # Footer text y
