@@ -1,0 +1,35 @@
+# ==============================================================================
+# ED1 Display Settings Package - Runtime display configuration
+# ==============================================================================
+# Provides Home Assistant controls for:
+# - Color palette selection (0=TE Orange, 1=Cyber, 2=Mono Green, 3=Ocean)
+#
+# Include this package and use the palette global in your display lambda:
+#
+#   int palette = id(display_palette);
+#   // Then set colors based on palette (see display-colors.yaml for values)
+# ==============================================================================
+
+# Palette global (0=TE Orange, 1=Cyber, 2=Mono Green, 3=Ocean)
+globals:
+  - id: display_palette
+    type: int
+    restore_value: true
+    initial_value: '0'  # Default to TE Orange
+
+# Palette selector exposed to Home Assistant (0-3)
+# 0=TE Orange, 1=Cyber, 2=Mono Green, 3=Ocean
+number:
+  - platform: template
+    name: "${friendly_name} Color Theme"
+    id: palette_number
+    icon: "mdi:palette"
+    min_value: 0
+    max_value: 3
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(display_palette) = (int)x;'
