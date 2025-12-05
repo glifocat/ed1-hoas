@@ -30,6 +30,7 @@ packages:
   buttons: !include packages/buttons.yaml
   sensors: !include packages/sensors.yaml
   bluetooth: !include packages/bluetooth.yaml
+  # ir_receiver: !include packages/ir-receiver.yaml  # Uncomment to enable IR
 
 # Startup animation
 esphome:

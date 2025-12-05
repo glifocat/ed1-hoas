@@ -6,11 +6,9 @@ Detailed explanation of the ESPHome configuration for the ED1 board.
 
 ```
 ed1-hoas/
-├── ed1-message.sample.yaml        # Message display with chat log (recommended)
+├── ed1-message.sample.yaml        # Message display with chat log (HA API)
 ├── ed1-mqtt.sample.yaml           # Dashboard with MQTT messaging
-├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime)
-├── ed1-rev23-a.sample.yaml        # Status display with IR receiver
-├── ed1-full-features.sample.yaml  # All features (TFT + LED matrix + IR)
+├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime, optional IR)
 ├── secrets.yaml                   # Credentials (git-ignored)
 ├── secrets.sample.yaml            # Template
 ├── packages/                      # Modular ESPHome components
@@ -180,7 +178,7 @@ display:
     rotation: 0
     model: "INITR_GREENTAB"
     col_start: 2
-    row_start: 1
+    row_start: 3
     device_width: 128
     device_height: 128
     update_interval: 1s
@@ -202,9 +200,9 @@ display:
 ```
 
 **Model Options:**
-- `INITR_GREENTAB`: Most common for 1.44" displays
+- `INITR_GREENTAB`: Use with `row_start: 3` for 1.44" 128x128 displays (equivalent to Adafruit's INITR_144GREENTAB)
 - `INITR_BLACKTAB`: Alternative initialization
-- `INITR_144GREENTAB`: Specific 144x144 variant
+- `INITR_18REDTAB`: For 1.8" displays
 
 ### LED Matrix Display (packages/led-matrix.yaml)
 
