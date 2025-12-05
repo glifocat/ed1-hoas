@@ -225,12 +225,18 @@ display:
         it.print(64, 50, id(icons_12), GRAY, TextAlign::CENTER, "\U0000e0b7");
         it.print(64, 70, id(pixel_font), GRAY, TextAlign::CENTER, "No messages");
       } else {
-        // Ensure index is in bounds
+        // Ensure index is in bounds (defensive check before vector access)
         if (id(current_index) >= msg_count) id(current_index) = msg_count - 1;
         if (id(current_index) < 0) id(current_index) = 0;
 
-        std::string msg = id(message_list)[id(current_index)];
-        std::string ts = id(timestamp_list)[id(current_index)];
+        // Double-check bounds before access (guard against race conditions)
+        int idx = id(current_index);
+        if (idx < 0 || idx >= (int)id(message_list).size() || idx >= (int)id(timestamp_list).size()) {
+          return;  // Bail if index became invalid
+        }
+
+        std::string msg = id(message_list)[idx];
+        std::string ts = id(timestamp_list)[idx];
 
         // Show navigation and timestamp header
         it.printf(64, 20, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "[%d/%d] %s", id(current_index) + 1, msg_count, ts.c_str());

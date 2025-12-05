@@ -1,11 +1,16 @@
 # ==============================================================================
 # ED1 Bluetooth Package - BLE tracker and proxy
 # ==============================================================================
+# Scan parameters tuned for ~45% duty cycle (balanced power/responsiveness)
+# - interval: Time between scan windows
+# - window: Active scanning time within each interval
+# For battery-only use, consider reducing window to 300ms (~27% duty)
+# ==============================================================================
 
 esp32_ble_tracker:
   scan_parameters:
     interval: 1100ms
-    window: 1100ms
+    window: 500ms  # Reduced from 1100ms (100% duty) to 500ms (~45% duty)
 
 bluetooth_proxy:
   active: true
