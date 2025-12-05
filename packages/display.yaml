@@ -14,7 +14,7 @@ display:
     rotation: 0
     model: "INITR_GREENTAB"
     col_start: 2
-    row_start: 1
+    row_start: 3
     device_width: 128
     device_height: 128
     update_interval: 1s
