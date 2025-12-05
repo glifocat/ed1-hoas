@@ -212,6 +212,30 @@ display:
         return lines;
       };
 
+      // Signal bars helper - draws 4 vertical bars based on RSSI
+      // x,y is top-right corner of the bars
+      auto draw_signal_bars = [&](int x, int y, int rssi, Color ok, Color warn, Color err, Color muted) {
+        // Determine signal level (0-4 bars)
+        int bars = 0;
+        Color color = err;
+        if (rssi > -50) { bars = 4; color = ok; }
+        else if (rssi > -60) { bars = 3; color = ok; }
+        else if (rssi > -70) { bars = 2; color = warn; }
+        else if (rssi > -80) { bars = 1; color = warn; }
+        else { bars = 0; color = err; }
+
+        // Draw 4 bars from left to right, heights: 3, 6, 9, 12
+        int bar_w = 3;
+        int gap = 1;
+        int base_y = y + 12;  // Bottom baseline
+        for (int i = 0; i < 4; i++) {
+          int bar_h = 3 + (i * 3);  // Heights: 3, 6, 9, 12
+          int bar_x = x - (4 - i) * (bar_w + gap);
+          Color c = (i < bars) ? color : muted;
+          it.filled_rectangle(bar_x, base_y - bar_h, bar_w, bar_h, c);
+        }
+      };
+
       // ===========================================
       // RENDER
       // ===========================================
@@ -243,10 +267,9 @@ display:
         it.print(52, 6, id(pixel_font), WARN, "WAIT");
       }
 
-      // Signal indicator (right)
+      // Signal bars (right)
       int rssi = (int)id(wifi_signal_sensor).state;
-      Color sig_c = (rssi > -60) ? OK : (rssi > -75) ? WARN : ERR;
-      it.printf(W - PAD, 6, id(pixel_font), sig_c, TextAlign::TOP_RIGHT, "%ddB", rssi);
+      draw_signal_bars(W - PAD, 4, rssi, OK, WARN, ERR, MUTED);
 
       it.horizontal_line(0, HEADER_H, W, MUTED);
 
