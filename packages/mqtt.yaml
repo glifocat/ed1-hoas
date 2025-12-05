@@ -17,6 +17,7 @@ mqtt:
   broker: !secret mqtt_broker
   username: !secret mqtt_user
   password: !secret mqtt_password
+  discovery: false  # Disable HA discovery - use ESPHome API instead
   topic_prefix: ed1/${device_name}
   birth_message:
     topic: ed1/${device_name}/status

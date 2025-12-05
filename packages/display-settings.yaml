@@ -8,6 +8,10 @@
 #
 #   int palette = id(display_palette);
 #   // Then set colors based on palette (see display-colors.yaml for values)
+#
+# Note: ESPHome select component has linker issues in 2025.11.x when combined
+# with MQTT. Using number component instead. Create a template select in HA
+# for dropdown UI if desired.
 # ==============================================================================
 
 # Palette global (0=TE Orange, 1=Cyber, 2=Mono Green, 3=Ocean)
@@ -33,3 +37,20 @@ number:
     on_value:
       then:
         - lambda: 'id(display_palette) = (int)x;'
+        - text_sensor.template.publish:
+            id: palette_name
+            state: !lambda |-
+              switch((int)x) {
+                case 0: return "TE Orange";
+                case 1: return "Cyber";
+                case 2: return "Mono Green";
+                case 3: return "Ocean";
+                default: return "Unknown";
+              }
+
+# Text sensor showing current theme name (for HA display)
+text_sensor:
+  - platform: template
+    name: "${friendly_name} Theme Name"
+    id: palette_name
+    icon: "mdi:palette-outline"
