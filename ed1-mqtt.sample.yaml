@@ -27,6 +27,7 @@ substitutions:
 packages:
   colors: !include packages/display-colors.yaml
   layout: !include packages/display-layout.yaml
+  settings: !include packages/display-settings.yaml
   core: !include packages/core.yaml
   hardware: !include packages/hardware.yaml
   display: !include packages/display.yaml
@@ -66,7 +67,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - script.execute: sound_startup
       - delay: 2s
       - lambda: 'id(boot_complete) = true;'
 
@@ -110,14 +111,14 @@ text_sensor:
               id(msg_scroll_offset) = 0;
               id(msg_count)++;
             }
-        - rtttl.play: 'notify:d=8,o=5,b=140:c6,e6'
+        - script.execute: sound_notify
 
 # Button handlers
 binary_sensor:
   # Clear current message with X button
   - id: !extend btn_x
     on_press:
-      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - script.execute: sound_alert
       - lambda: |-
           if (!id(msg_history).empty()) {
             int idx = id(msg_history_index);
@@ -170,7 +171,7 @@ display:
   - id: !extend internal_display
     lambda: |-
       // ===========================================
-      // COLORS (from display-colors.yaml)
+      // COLORS (runtime palette selection)
       // ===========================================
       auto BG      = Color(${color_bg});
       auto TEXT    = Color(${color_text});
@@ -178,8 +179,23 @@ display:
       auto OK      = Color(${color_ok});
       auto WARN    = Color(${color_warn});
       auto ERR     = Color(${color_error});
-      auto ACCENT  = Color(${color_accent});
-      auto HIGHLIGHT = Color(${color_highlight});
+
+      // Palette-dependent colors
+      Color ACCENT, HIGHLIGHT;
+      int palette = id(display_palette);
+      if (palette == 0) {        // TE Orange
+        HIGHLIGHT = Color(0,102,255);  // Orange
+        ACCENT = Color(255,255,0);     // Cyan
+      } else if (palette == 1) { // Cyber
+        HIGHLIGHT = Color(255,0,255);  // Magenta
+        ACCENT = Color(255,255,0);     // Cyan
+      } else if (palette == 2) { // Mono Green
+        HIGHLIGHT = Color(0,255,0);    // Green
+        ACCENT = Color(0,200,0);       // Dim green
+      } else {                   // Ocean
+        HIGHLIGHT = Color(255,200,0);  // Teal
+        ACCENT = Color(255,128,0);     // Light blue
+      }
 
       // ===========================================
       // LAYOUT (from display-layout.yaml)
