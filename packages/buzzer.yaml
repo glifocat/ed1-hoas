@@ -1,5 +1,8 @@
 # ==============================================================================
-# ED1 Buzzer Package - PWM output and RTTTL sounds
+# ED1 Buzzer Package - PWM output and RTTTL sounds with volume control
+# ==============================================================================
+# Volume levels: 0=Off, 1=Low, 2=Medium, 3=High
+# Volume setting is exposed to Home Assistant and persists across reboots.
 # ==============================================================================
 
 output:
@@ -11,18 +14,92 @@ rtttl:
   output: buzzer_output
   id: buzzer_rtttl
 
+# Volume control global (0=off, 1=low, 2=medium, 3=high)
+globals:
+  - id: buzzer_volume
+    type: int
+    restore_value: true
+    initial_value: '2'  # Default to medium
+
+# Volume control exposed to Home Assistant (0-3)
+number:
+  - platform: template
+    name: "${friendly_name} Volume"
+    id: volume_number
+    icon: "mdi:volume-high"
+    min_value: 0
+    max_value: 3
+    step: 1
+    initial_value: 2
+    restore_value: true
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(buzzer_volume) = (int)x;'
+
+# Sound scripts that respect volume setting
+script:
+  - id: sound_beep
+    then:
+      - lambda: |-
+          int vol = id(buzzer_volume);
+          if (vol == 0) return;
+          if (vol == 1) id(buzzer_rtttl).play("beep:d=32,o=4,b=140:c");
+          else if (vol == 2) id(buzzer_rtttl).play("beep:d=16,o=5,b=140:c");
+          else id(buzzer_rtttl).play("beep:d=8,o=5,b=140:c");
+
+  - id: sound_notify
+    then:
+      - lambda: |-
+          int vol = id(buzzer_volume);
+          if (vol == 0) return;
+          if (vol == 1) id(buzzer_rtttl).play("notify:d=32,o=4,b=140:c,e");
+          else if (vol == 2) id(buzzer_rtttl).play("notify:d=16,o=5,b=140:c6,e6");
+          else id(buzzer_rtttl).play("notify:d=8,o=5,b=140:c6,e6");
+
+  - id: sound_alert
+    then:
+      - lambda: |-
+          int vol = id(buzzer_volume);
+          if (vol == 0) return;
+          if (vol == 1) id(buzzer_rtttl).play("alert:d=32,o=4,b=180:c,c");
+          else if (vol == 2) id(buzzer_rtttl).play("alert:d=16,o=5,b=180:c,c,c");
+          else id(buzzer_rtttl).play("alert:d=8,o=5,b=180:c,c,c,c");
+
+  - id: sound_success
+    then:
+      - lambda: |-
+          int vol = id(buzzer_volume);
+          if (vol == 0) return;
+          if (vol == 1) id(buzzer_rtttl).play("ok:d=32,o=4,b=160:c,e,g");
+          else if (vol == 2) id(buzzer_rtttl).play("ok:d=16,o=5,b=160:c,e,g");
+          else id(buzzer_rtttl).play("ok:d=8,o=5,b=160:c,e,g");
+
+  - id: sound_startup
+    then:
+      - lambda: |-
+          int vol = id(buzzer_volume);
+          if (vol == 0) return;
+          if (vol == 1) id(buzzer_rtttl).play("startup:d=32,o=4,b=180:c,e,g,c5");
+          else if (vol == 2) id(buzzer_rtttl).play("startup:d=16,o=5,b=180:c,e,g,c6");
+          else id(buzzer_rtttl).play("startup:d=8,o=5,b=180:c,e,g,c6");
+
+# Home Assistant buttons for testing sounds
 button:
   - platform: template
     name: "${friendly_name} Beep"
+    icon: "mdi:bell"
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - script.execute: sound_beep
 
   - platform: template
     name: "${friendly_name} Alert"
+    icon: "mdi:alert"
     on_press:
-      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - script.execute: sound_alert
 
   - platform: template
     name: "${friendly_name} Success"
+    icon: "mdi:check-circle"
     on_press:
-      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
+      - script.execute: sound_success

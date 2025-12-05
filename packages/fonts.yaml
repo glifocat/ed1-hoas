@@ -1,5 +1,20 @@
 # ==============================================================================
-# ED1 Fonts Package - Common font definitions
+# ED1 Fonts Package - Typography & Icons
+# ==============================================================================
+#
+# Icon Reference (Material Symbols Outlined)
+# ------------------------------------------
+# WiFi:         \U0000e63e   wifi
+# Home:         \U0000e88a   home (HA connection)
+# Mail:         \U0000e0b7   mail/message
+# Thermostat:   \U0000e1ff   device_thermostat
+# Light:        \U0000e518   light_mode
+# Clock:        \U0000e8b5   schedule
+#
+# Usage in lambda:
+#   it.print(x, y, id(icons_12), color, "\U0000e63e");  // WiFi icon
+#
+# Browse more icons: https://fonts.google.com/icons
 # ==============================================================================
 
 font:

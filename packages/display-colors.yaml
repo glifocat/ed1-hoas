@@ -1,0 +1,64 @@
+# ==============================================================================
+# ED1 Display Colors Package - Color Palette Definitions
+# ==============================================================================
+# This file documents the available color palettes and provides default colors.
+#
+# IMPORTANT: The ST7735 GREENTAB display uses BGR byte order internally.
+# Colors are defined with R and B swapped so they render correctly.
+# When adding new colors, swap the R and B values from standard RGB.
+# Example: To display orange (RGB 255,102,0), use "0,102,255"
+#
+# RUNTIME PALETTE SWITCHING:
+# Include packages/display-settings.yaml and use this pattern in your lambda:
+#
+#   int palette = id(display_palette);
+#   Color HIGHLIGHT, ACCENT;
+#   if (palette == 0) {        // TE Orange
+#     HIGHLIGHT = Color(0,102,255);  // Orange
+#     ACCENT = Color(255,255,0);     // Cyan
+#   } else if (palette == 1) { // Cyber
+#     HIGHLIGHT = Color(255,0,255);  // Magenta
+#     ACCENT = Color(255,255,0);     // Cyan
+#   } else if (palette == 2) { // Mono Green
+#     HIGHLIGHT = Color(0,255,0);    // Green
+#     ACCENT = Color(0,200,0);       // Dim green
+#   } else {                   // Ocean
+#     HIGHLIGHT = Color(255,200,0);  // Teal
+#     ACCENT = Color(255,128,0);     // Light blue
+#   }
+#
+# ==============================================================================
+# PALETTE REFERENCE (BGR values for ST7735):
+#
+# TE Orange (default):
+#   highlight: 0,102,255  (displays as orange)
+#   accent:    255,255,0  (displays as cyan)
+#
+# Cyber (synthwave):
+#   highlight: 255,0,255  (displays as magenta)
+#   accent:    255,255,0  (displays as cyan)
+#
+# Mono Green (retro terminal):
+#   highlight: 0,255,0    (displays as green)
+#   accent:    0,200,0    (displays as dim green)
+#
+# Ocean (cool/calm):
+#   highlight: 255,200,0  (displays as teal)
+#   accent:    255,128,0  (displays as light blue)
+# ==============================================================================
+
+substitutions:
+  # Background & text (same across all palettes)
+  color_bg: "0,0,0"           # Black
+  color_text: "255,255,255"   # White
+  color_muted: "80,80,80"     # Gray (borders, inactive)
+  color_dim: "102,102,102"    # Dim gray (secondary text)
+
+  # Status colors (BGR order for ST7735 GREENTAB)
+  color_ok: "0,255,0"         # Green (connected, success)
+  color_warn: "0,255,255"     # Yellow (warning, weak signal) - BGR: 255,255,0
+  color_error: "0,0,255"      # Red (error, disconnected) - BGR: 255,0,0
+
+  # Default accent colors - TE Orange palette (BGR order)
+  color_accent: "255,255,0"   # Cyan (data, active elements) - BGR: 0,255,255
+  color_highlight: "0,102,255" # TE Orange (primary accent) - BGR: 255,102,0
