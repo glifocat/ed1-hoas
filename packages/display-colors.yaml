@@ -4,6 +4,12 @@
 # Centralized color scheme for all display configurations.
 # Override any color in your device config's substitutions block.
 #
+# IMPORTANT: The ST7735 GREENTAB display uses BGR byte order internally.
+# Colors are defined with R and B swapped so they render correctly.
+# When adding new colors, swap the R and B values from standard RGB.
+#
+# Example: To display orange (RGB 255,102,0), use "0,102,255"
+#
 # Usage in display lambda:
 #   auto BG = Color(${color_bg});
 #   auto OK = Color(${color_ok});
@@ -16,11 +22,11 @@ substitutions:
   color_muted: "80,80,80"     # Gray (borders, inactive)
   color_dim: "102,102,102"    # Dim gray (secondary text)
 
-  # Status colors
+  # Status colors (BGR order for ST7735 GREENTAB)
   color_ok: "0,255,0"         # Green (connected, success)
-  color_warn: "255,255,0"     # Yellow (warning, weak signal)
-  color_error: "255,0,0"      # Red (error, disconnected)
+  color_warn: "0,255,255"     # Yellow (warning, weak signal) - BGR: 255,255,0
+  color_error: "0,0,255"      # Red (error, disconnected) - BGR: 255,0,0
 
-  # Accent colors (TE-inspired)
-  color_accent: "0,255,255"   # Cyan (data, active elements)
-  color_highlight: "255,102,0" # TE Orange (primary accent)
+  # Accent colors (TE-inspired, BGR order)
+  color_accent: "255,255,0"   # Cyan (data, active elements) - BGR: 0,255,255
+  color_highlight: "0,102,255" # TE Orange (primary accent) - BGR: 255,102,0
