@@ -22,7 +22,7 @@ display:
     pixel_mapper: |-
       if (x % 2 == 0) return (x * 8) + y;
       return (x * 8) + (7 - y);
-    update_interval: 50ms
+    update_interval: 200ms  # Reduced from 50ms - sufficient for static text
     lambda: |-
       auto v = id(led_matrix_light).current_values;
       auto c = Color(
