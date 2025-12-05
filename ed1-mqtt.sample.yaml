@@ -1,11 +1,11 @@
 # ==============================================================================
-# ED1 MQTT Dashboard - Status display with MQTT messaging
+# ED1 MQTT Monitor - Terminal-style MQTT message display
 # ==============================================================================
 #
-# A dashboard showing device status with MQTT message support.
-# - Receives messages via MQTT (not Home Assistant API)
-# - Shows WiFi, CPU temp, light sensor, and uptime
-# - MQTT messages appear in the message area
+# A monitor-style display for MQTT messages with a technical aesthetic.
+# - Accent stripe indicates connection status
+# - Shows MQTT topic and raw payload
+# - Message counter and stats in footer
 #
 # Usage:
 #   1. Copy this file and rename (e.g., ed1-kitchen.yaml)
@@ -20,10 +20,13 @@
 
 substitutions:
   device_name: ed1-mqtt
-  friendly_name: ED1 MQTT Dashboard
+  friendly_name: ED1 MQTT Monitor
   ap_ssid: ED1-MQTT-Rescue
+  mqtt_topic: "ed1/${device_name}/message"
 
 packages:
+  colors: !include packages/display-colors.yaml
+  layout: !include packages/display-layout.yaml
   core: !include packages/core.yaml
   hardware: !include packages/hardware.yaml
   display: !include packages/display.yaml
@@ -38,15 +41,25 @@ globals:
   - id: boot_complete
     type: bool
     initial_value: 'false'
-  - id: last_message
-    type: std::string
+  # Message history (circular buffer)
+  - id: msg_history
+    type: std::vector<std::string>
     restore_value: false
-  - id: message_time
-    type: std::string
+  - id: msg_timestamps
+    type: std::vector<std::string>
     restore_value: false
+  - id: msg_history_index
+    type: int
+    initial_value: '0'
   - id: msg_scroll_offset
     type: int
     initial_value: '0'
+  - id: msg_count
+    type: int
+    initial_value: '0'
+  - id: msg_history_max
+    type: int
+    initial_value: '5'
 
 # Startup
 esphome:
@@ -70,32 +83,57 @@ text_sensor:
       then:
         - lambda: |-
             if (x.length() > 0) {
-              id(last_message) = x;
-              id(msg_scroll_offset) = 0;  // Reset scroll on new message
+              // Get timestamp
+              std::string timestamp;
               auto time = id(sntp_time).now();
               if (time.is_valid()) {
                 char buf[10];
                 snprintf(buf, sizeof(buf), "%02d:%02d", time.hour, time.minute);
-                id(message_time) = std::string(buf);
+                timestamp = std::string(buf);
               } else {
-                id(message_time) = "??:??";
+                timestamp = "??:??";
               }
+
+              // Add to history (insert at front)
+              id(msg_history).insert(id(msg_history).begin(), x);
+              id(msg_timestamps).insert(id(msg_timestamps).begin(), timestamp);
+
+              // Trim if over max
+              int max_size = id(msg_history_max);
+              if (id(msg_history).size() > max_size) {
+                id(msg_history).resize(max_size);
+                id(msg_timestamps).resize(max_size);
+              }
+
+              // Reset to newest message
+              id(msg_history_index) = 0;
+              id(msg_scroll_offset) = 0;
+              id(msg_count)++;
             }
         - rtttl.play: 'notify:d=8,o=5,b=140:c6,e6'
 
 # Button handlers
 binary_sensor:
-  # Clear message with X button
+  # Clear current message with X button
   - id: !extend btn_x
     on_press:
       - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - lambda: |-
-          id(last_message) = "";
-          id(message_time) = "";
-          id(msg_scroll_offset) = 0;
+          if (!id(msg_history).empty()) {
+            int idx = id(msg_history_index);
+            if (idx < id(msg_history).size()) {
+              id(msg_history).erase(id(msg_history).begin() + idx);
+              id(msg_timestamps).erase(id(msg_timestamps).begin() + idx);
+              // Adjust index if needed
+              if (id(msg_history_index) >= id(msg_history).size() && !id(msg_history).empty()) {
+                id(msg_history_index) = id(msg_history).size() - 1;
+              }
+              id(msg_scroll_offset) = 0;
+            }
+          }
       - logger.log: "Message cleared"
 
-  # Scroll up
+  # Scroll up within message
   - id: !extend btn_up
     on_press:
       - lambda: |-
@@ -103,128 +141,196 @@ binary_sensor:
             id(msg_scroll_offset) -= 1;
           }
 
-  # Scroll down
+  # Scroll down within message
   - id: !extend btn_down
     on_press:
       - lambda: |-
           id(msg_scroll_offset) += 1;
 
-# Dashboard display layout
+  # Navigate to older message (LEFT)
+  - id: !extend btn_left
+    on_press:
+      - lambda: |-
+          if (id(msg_history_index) < (int)id(msg_history).size() - 1) {
+            id(msg_history_index)++;
+            id(msg_scroll_offset) = 0;
+          }
+
+  # Navigate to newer message (RIGHT)
+  - id: !extend btn_right
+    on_press:
+      - lambda: |-
+          if (id(msg_history_index) > 0) {
+            id(msg_history_index)--;
+            id(msg_scroll_offset) = 0;
+          }
+
+# MQTT Monitor display - TE "Monitor" style
 display:
   - id: !extend internal_display
     lambda: |-
-      // Colors
-      auto BLACK = Color(0, 0, 0);
-      auto WHITE = Color(255, 255, 255);
-      auto GREEN = Color(0, 255, 0);
-      auto CYAN = Color(100, 200, 255);  // Lighter blue for better contrast
-      auto YELLOW = Color(255, 255, 0);
-      auto ORANGE = Color(255, 165, 0);
-      auto RED = Color(255, 0, 0);
-      auto GRAY = Color(80, 80, 80);
+      // ===========================================
+      // COLORS (from display-colors.yaml)
+      // ===========================================
+      auto BG      = Color(${color_bg});
+      auto TEXT    = Color(${color_text});
+      auto MUTED   = Color(${color_muted});
+      auto OK      = Color(${color_ok});
+      auto WARN    = Color(${color_warn});
+      auto ERR     = Color(${color_error});
+      auto ACCENT  = Color(${color_accent});
+      auto HIGHLIGHT = Color(${color_highlight});
 
-      it.fill(BLACK);
+      // ===========================================
+      // LAYOUT (from display-layout.yaml)
+      // ===========================================
+      const int W = ${display_width};
+      const int HEADER_H = ${header_height};
+      const int FOOTER_Y = ${footer_y};
+      const int PAD = ${padding};
+
+      // ===========================================
+      // HELPER FUNCTIONS
+      // ===========================================
+
+      // Word wrap helper
+      auto wrap_text = [](const std::string& text, int max_chars) {
+        std::vector<std::string> lines;
+        std::string remaining = text;
+        while (!remaining.empty()) {
+          if (remaining.length() <= max_chars) {
+            lines.push_back(remaining);
+            break;
+          }
+          size_t pos = remaining.rfind(' ', max_chars);
+          if (pos == std::string::npos || pos == 0) pos = max_chars;
+          lines.push_back(remaining.substr(0, pos));
+          remaining = remaining.substr(pos);
+          if (!remaining.empty() && remaining[0] == ' ')
+            remaining = remaining.substr(1);
+        }
+        return lines;
+      };
+
+      // ===========================================
+      // RENDER
+      // ===========================================
+      it.fill(BG);
 
       // Boot splash
       if (!id(boot_complete)) {
-        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
-        it.print(64, 60, id(pixel_font), CYAN, TextAlign::CENTER, "MQTT");
-        it.print(64, 80, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        it.filled_rectangle(0, 40, W, 30, HIGHLIGHT);
+        it.print(W/2, 48, id(large_font), BG, TextAlign::CENTER, "MQTT");
+        it.print(W/2, 80, id(pixel_font), MUTED, TextAlign::CENTER, "CONNECTING");
         return;
       }
 
-      // === HEADER (y=0-14) ===
-      it.print(64, 2, id(pixel_font), GREEN, TextAlign::TOP_CENTER, "MQTT Dashboard");
-      it.horizontal_line(0, 14, 128, GRAY);
+      // --- HEADER with accent stripe ---
+      // Left accent stripe (TE signature element)
+      bool mqtt_ok = !id(wifi_ip).state.empty();
+      it.filled_rectangle(0, 0, 3, HEADER_H, mqtt_ok ? HIGHLIGHT : WARN);
 
-      // === STATUS AREA (y=16-70) ===
-      int y = 18;
-      int line_h = 13;
+      // Title
+      it.print(8, 6, id(pixel_font), HIGHLIGHT, "MQTT");
 
-      // WiFi status
-      bool has_ip = !id(wifi_ip).state.empty();
-      if (has_ip) {
-        it.print(2, y - 2, id(icons_12), GREEN, "\U0000e63e");
-        it.printf(18, y, id(pixel_font), WHITE, "%s", id(wifi_ip).state.c_str());
+      // Connection status dot
+      if (mqtt_ok) {
+        it.filled_circle(45, 10, 3, OK);
+        it.print(52, 6, id(pixel_font), OK, "LIVE");
       } else {
-        it.print(2, y - 2, id(icons_12), YELLOW, "\U0000e63e");
-        it.print(18, y, id(pixel_font), YELLOW, "Connecting...");
+        int sec = (int)id(uptime_sensor).state;
+        it.filled_circle(45, 10, 3, (sec % 2) ? WARN : BG);
+        it.print(52, 6, id(pixel_font), WARN, "WAIT");
       }
-      y += line_h;
 
-      // Signal strength
+      // Signal indicator (right)
       int rssi = (int)id(wifi_signal_sensor).state;
-      Color sig_color = rssi > -60 ? GREEN : (rssi > -75 ? YELLOW : RED);
-      it.printf(2, y, id(pixel_font), sig_color, "Signal: %d dBm", rssi);
-      y += line_h;
+      Color sig_c = (rssi > -60) ? OK : (rssi > -75) ? WARN : ERR;
+      it.printf(W - PAD, 6, id(pixel_font), sig_c, TextAlign::TOP_RIGHT, "%ddB", rssi);
 
-      // CPU Temperature
-      it.print(2, y - 2, id(icons_12), ORANGE, "\U0000e1ff");
-      it.printf(18, y, id(pixel_font), WHITE, "CPU: %.1fC", id(cpu_temp).state);
-      y += line_h;
+      it.horizontal_line(0, HEADER_H, W, MUTED);
 
-      // Light sensor
-      it.print(2, y - 2, id(icons_12), YELLOW, "\U0000e518");
-      it.printf(18, y, id(pixel_font), WHITE, "Light: %.0f%%", id(light_sensor).state);
+      // --- TOPIC BAR ---
+      it.filled_rectangle(0, HEADER_H, W, 12, MUTED);
+      it.print(PAD, HEADER_H + 2, id(pixel_font), TEXT, "${mqtt_topic}");
 
-      // === MESSAGE AREA (y=72-110) ===
-      it.horizontal_line(0, 70, 128, GRAY);
+      // --- MESSAGE AREA ---
+      int content_y = HEADER_H + 14;
+      int history_size = id(msg_history).size();
+      int current_idx = id(msg_history_index);
 
-      if (id(last_message).empty()) {
-        it.print(64, 85, id(pixel_font), GRAY, TextAlign::CENTER, "No MQTT message");
+      if (history_size == 0) {
+        // Empty state - terminal prompt style
+        it.print(PAD, 50, id(pixel_font), MUTED, "> waiting for");
+        it.print(PAD, 62, id(pixel_font), MUTED, "  message...");
+        it.print(PAD, 80, id(pixel_font), ACCENT, "_");
       } else {
-        // Timestamp
-        it.printf(64, 74, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "[%s]", id(message_time).c_str());
+        // Ensure index is valid
+        if (current_idx >= history_size) current_idx = history_size - 1;
 
-        // Word wrap message into lines
-        std::string msg = id(last_message);
-        int max_chars = 16;
-        std::vector<std::string> lines;
+        std::string current_msg = id(msg_history)[current_idx];
+        std::string current_time = id(msg_timestamps)[current_idx];
 
-        while (!msg.empty()) {
-          if (msg.length() <= max_chars) {
-            lines.push_back(msg);
-            break;
-          }
-          size_t break_pos = msg.rfind(' ', max_chars);
-          if (break_pos == std::string::npos || break_pos == 0) break_pos = max_chars;
-          lines.push_back(msg.substr(0, break_pos));
-          msg = msg.substr(break_pos);
-          if (!msg.empty() && msg[0] == ' ') msg = msg.substr(1);
+        // Timestamp + position indicator
+        if (history_size > 1) {
+          it.printf(PAD, content_y, id(pixel_font), MUTED, "%s [%d/%d]",
+                    current_time.c_str(), current_idx + 1, history_size);
+        } else {
+          it.printf(PAD, content_y, id(pixel_font), MUTED, "%s", current_time.c_str());
         }
 
-        // Clamp scroll offset
-        int max_scroll = lines.size() > 2 ? lines.size() - 2 : 0;
+        // Message payload (wrapped)
+        auto lines = wrap_text(current_msg, 16);
+
+        // Clamp scroll
+        int max_scroll = lines.size() > 4 ? lines.size() - 4 : 0;
         if (id(msg_scroll_offset) > max_scroll) id(msg_scroll_offset) = max_scroll;
 
-        // Display 2 visible lines based on scroll offset
+        int y = content_y + 14;
+        int visible_lines = 4;
         int offset = id(msg_scroll_offset);
-        if (offset < lines.size()) {
-          it.print(64, 85, id(message_font), CYAN, TextAlign::TOP_CENTER, lines[offset].c_str());
-        }
-        if (offset + 1 < lines.size()) {
-          it.print(64, 97, id(message_font), CYAN, TextAlign::TOP_CENTER, lines[offset + 1].c_str());
+
+        for (int i = 0; i < visible_lines && (offset + i) < (int)lines.size(); i++) {
+          it.print(PAD, y, id(message_font), ACCENT, lines[offset + i].c_str());
+          y += ${line_height};
         }
 
-        // Scroll indicators
+        // Scroll indicators (vertical)
         if (offset > 0) {
-          it.print(120, 85, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "^");
+          it.print(W - 8, content_y + 14, id(pixel_font), MUTED, "^");
         }
         if (offset < max_scroll) {
-          it.print(120, 97, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "v");
+          it.print(W - 8, content_y + 14 + (visible_lines - 1) * ${line_height}, id(pixel_font), MUTED, "v");
+        }
+
+        // History navigation indicators (horizontal arrows on sides)
+        if (current_idx < history_size - 1) {
+          it.print(PAD, content_y + 40, id(pixel_font), MUTED, "<");  // older
+        }
+        if (current_idx > 0) {
+          it.print(W - PAD - 6, content_y + 40, id(pixel_font), MUTED, ">");  // newer
         }
       }
 
-      // === FOOTER (y=112-128) ===
-      it.horizontal_line(0, 112, 128, GRAY);
+      // --- FOOTER ---
+      it.horizontal_line(0, FOOTER_Y, W, MUTED);
 
-      // Uptime
-      int uptime_s = (int)id(uptime_sensor).state;
-      int hours = uptime_s / 3600;
-      int mins = (uptime_s % 3600) / 60;
-      it.printf(4, 116, id(pixel_font), WHITE, "Up: %dh%02dm", hours, mins);
+      // Message count (left)
+      it.printf(PAD, ${footer_text_y}, id(pixel_font), MUTED, "#%d", id(msg_count));
 
-      // Clear hint
-      if (!id(last_message).empty()) {
-        it.print(124, 116, id(pixel_font), RED, TextAlign::TOP_RIGHT, "[X]");
+      if (history_size > 0) {
+        // Navigation hints (center)
+        std::string nav_hint = "";
+        if (history_size > 1) nav_hint += "< > ";
+        auto lines = wrap_text(id(msg_history)[current_idx], 16);
+        if (lines.size() > 4) nav_hint += "^ v";
+        if (!nav_hint.empty()) {
+          it.print(W/2, ${footer_text_y}, id(pixel_font), MUTED, TextAlign::TOP_CENTER, nav_hint.c_str());
+        }
+        // Clear hint (right)
+        it.print(W - PAD, ${footer_text_y}, id(pixel_font), ERR, TextAlign::TOP_RIGHT, "X");
+      } else {
+        // Show IP when no message
+        it.print(W - PAD, ${footer_text_y}, id(pixel_font), ACCENT, TextAlign::TOP_RIGHT,
+                 id(wifi_ip).state.c_str());
       }

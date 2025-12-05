@@ -28,6 +28,8 @@ substitutions:
   ap_ssid: ED1-Message-Rescue
 
 packages:
+  colors: !include packages/display-colors.yaml
+  layout: !include packages/display-layout.yaml
   core: !include packages/core.yaml
   hardware: !include packages/hardware.yaml
   display: !include packages/display.yaml
@@ -147,139 +149,171 @@ binary_sensor:
           }
       - logger.log: "Button X - Delete message"
 
-# Message display layout
+# Message display layout - TE "Messenger" style
 display:
   - id: !extend internal_display
     lambda: |-
-      // Colors
-      auto BLACK = Color(0, 0, 0);
-      auto WHITE = Color(255, 255, 255);
-      auto GREEN = Color(0, 255, 0);
-      auto CYAN = Color(0, 255, 255);
-      auto YELLOW = Color(255, 255, 0);
-      auto ORANGE = Color(255, 165, 0);
-      auto RED = Color(255, 0, 0);
-      auto GRAY = Color(80, 80, 80);
+      // ===========================================
+      // COLORS (from display-colors.yaml)
+      // ===========================================
+      auto BG      = Color(${color_bg});
+      auto TEXT    = Color(${color_text});
+      auto MUTED   = Color(${color_muted});
+      auto OK      = Color(${color_ok});
+      auto WARN    = Color(${color_warn});
+      auto ERR     = Color(${color_error});
+      auto ACCENT  = Color(${color_accent});
+      auto HIGHLIGHT = Color(${color_highlight});
 
-      it.fill(BLACK);
+      // ===========================================
+      // LAYOUT (from display-layout.yaml)
+      // ===========================================
+      const int W = ${display_width};
+      const int HEADER_H = ${header_height};
+      const int CONTENT_Y = ${content_y};
+      const int FOOTER_Y = ${footer_y};
+      const int PAD = ${padding};
 
-      // Boot splash screen
+      // ===========================================
+      // HELPER FUNCTIONS
+      // ===========================================
+
+      // Draw status bar (solid color block)
+      auto draw_status_bar = [&]() {
+        it.filled_rectangle(0, 0, W, HEADER_H, HIGHLIGHT);
+      };
+
+      // Draw connection dot
+      auto draw_status_dot = [&](int x, int y, bool connected) {
+        if (connected) {
+          it.filled_circle(x, y, 4, OK);
+        } else {
+          int sec = (int)id(uptime_sensor).state;
+          if (sec % 2 == 0) {
+            it.filled_circle(x, y, 4, WARN);
+          } else {
+            it.circle(x, y, 4, WARN);
+          }
+        }
+      };
+
+      // Draw signal bars
+      auto draw_signal_bars = [&](int x, int y) {
+        int rssi = (int)id(wifi_signal_sensor).state;
+        int bars = (rssi > -50) ? 4 : (rssi > -60) ? 3 :
+                   (rssi > -70) ? 2 : (rssi > -80) ? 1 : 0;
+        for (int i = 0; i < 4; i++) {
+          int h = (i + 1) * 2;
+          int bx = x + (i * 4);
+          int by = y - h;
+          if (i < bars) {
+            it.filled_rectangle(bx, by, 3, h, BG);
+          } else {
+            it.rectangle(bx, by, 3, h, BG);
+          }
+        }
+      };
+
+      // Word wrap helper
+      auto wrap_text = [](const std::string& text, int max_chars) {
+        std::vector<std::string> lines;
+        std::string remaining = text;
+        while (!remaining.empty()) {
+          if (remaining.length() <= max_chars) {
+            lines.push_back(remaining);
+            break;
+          }
+          size_t pos = remaining.rfind(' ', max_chars);
+          if (pos == std::string::npos || pos == 0) pos = max_chars;
+          lines.push_back(remaining.substr(0, pos));
+          remaining = remaining.substr(pos);
+          if (!remaining.empty() && remaining[0] == ' ')
+            remaining = remaining.substr(1);
+        }
+        return lines;
+      };
+
+      // ===========================================
+      // RENDER
+      // ===========================================
+      it.fill(BG);
+
+      // Boot splash
       if (!id(boot_complete)) {
-        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
-        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        it.filled_rectangle(0, 40, W, 30, HIGHLIGHT);
+        it.print(W/2, 48, id(large_font), BG, TextAlign::CENTER, "ED1");
+        it.print(W/2, 80, id(pixel_font), MUTED, TextAlign::CENTER, "BOOTING");
         return;
       }
 
-      // === HEADER (y=0-16) ===
-      // WiFi icon on left
-      bool has_ip = !id(wifi_ip).state.empty();
-      if (has_ip) {
-        it.print(2, 2, id(icons_12), GREEN, "\U0000e63e");
-      } else {
-        int sec = (int)id(uptime_sensor).state;
-        if (sec % 2 == 0) {
-          it.print(2, 2, id(icons_12), YELLOW, "\U0000e63e");
-        }
-      }
+      // --- HEADER (status bar) ---
+      draw_status_bar();
 
-      // HA connection icon
-      if (id(ha_connected)) {
-        it.print(16, 2, id(icons_12), GREEN, "\U0000e88a");
-      } else {
-        it.print(16, 2, id(icons_12), RED, "\U0000e88a");
-      }
+      // Connection dot (left)
+      bool connected = !id(wifi_ip).state.empty() && id(ha_connected);
+      draw_status_dot(10, HEADER_H/2, connected);
 
-      // Time in center
+      // Status text
+      it.print(20, 6, id(pixel_font), BG, connected ? "ONLINE" : "OFFLINE");
+
+      // Time (right-aligned)
       auto time = id(sntp_time).now();
       if (time.is_valid()) {
-        it.strftime(64, 2, id(pixel_font), WHITE, TextAlign::TOP_CENTER, "%H:%M", time);
+        it.strftime(W - PAD, 6, id(pixel_font), BG, TextAlign::TOP_RIGHT, "%H:%M", time);
       }
 
-      // Signal bars on right
-      int rssi = (int)id(wifi_signal_sensor).state;
-      int bars = 0;
-      Color bar_color = RED;
-      if (rssi > -50) { bars = 4; bar_color = GREEN; }
-      else if (rssi > -60) { bars = 3; bar_color = GREEN; }
-      else if (rssi > -70) { bars = 2; bar_color = YELLOW; }
-      else if (rssi > -80) { bars = 1; bar_color = ORANGE; }
-
-      for (int i = 0; i < 4; i++) {
-        int bar_height = (i + 1) * 2;
-        int bar_x = 114 + (i * 4);
-        int bar_y = 12 - bar_height;
-        if (i < bars) {
-          it.filled_rectangle(bar_x, bar_y, 3, bar_height, bar_color);
-        } else {
-          it.rectangle(bar_x, bar_y, 3, bar_height, bar_color);
-        }
-      }
-
-      // Separator line
-      it.horizontal_line(0, 16, 128, GRAY);
-
-      // === MESSAGE AREA (y=18-110) ===
+      // Navigation counter (far right, if messages exist)
       int msg_count = id(message_list).size();
+      if (msg_count > 0) {
+        char nav[8];
+        snprintf(nav, sizeof(nav), "%d/%d", id(current_index) + 1, msg_count);
+        it.print(W - 30, 6, id(pixel_font), BG, TextAlign::TOP_RIGHT, nav);
+      }
+
+      // Signal bars
+      draw_signal_bars(${signal_x}, HEADER_H - 4);
+
+      // --- CONTENT AREA ---
       if (msg_count == 0) {
-        // No messages - show idle state
-        it.print(64, 50, id(icons_12), GRAY, TextAlign::CENTER, "\U0000e0b7");
-        it.print(64, 70, id(pixel_font), GRAY, TextAlign::CENTER, "No messages");
+        // Empty state
+        it.print(W/2, 60, id(icons_12), MUTED, TextAlign::CENTER, "\U0000e0b7");
+        it.print(W/2, 80, id(pixel_font), MUTED, TextAlign::CENTER, "no messages");
       } else {
-        // Ensure index is in bounds (defensive check before vector access)
+        // Bounds check
         if (id(current_index) >= msg_count) id(current_index) = msg_count - 1;
         if (id(current_index) < 0) id(current_index) = 0;
 
-        // Double-check bounds before access (guard against race conditions)
         int idx = id(current_index);
         if (idx < 0 || idx >= (int)id(message_list).size() || idx >= (int)id(timestamp_list).size()) {
-          return;  // Bail if index became invalid
+          return;
         }
 
         std::string msg = id(message_list)[idx];
         std::string ts = id(timestamp_list)[idx];
 
-        // Show navigation and timestamp header
-        it.printf(64, 20, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "[%d/%d] %s", id(current_index) + 1, msg_count, ts.c_str());
+        // Timestamp (small, muted)
+        it.printf(PAD, CONTENT_Y, id(pixel_font), MUTED, "%s", ts.c_str());
 
-        // Show message with word wrap
-        int y_pos = 32;
-        int line_height = 12;
-        int max_chars = 14;  // Approximate chars per line with message_font
-        int max_lines = 6;  // Reduced by 1 for header line
-        int line_count = 0;
-
-        std::string remaining = msg;
-        while (!remaining.empty() && line_count < max_lines) {
-          std::string line;
-          if (remaining.length() <= max_chars) {
-            line = remaining;
-            remaining = "";
-          } else {
-            // Find last space within max_chars
-            size_t break_pos = remaining.rfind(' ', max_chars);
-            if (break_pos == std::string::npos || break_pos == 0) {
-              break_pos = max_chars;
-            }
-            line = remaining.substr(0, break_pos);
-            remaining = remaining.substr(break_pos);
-            // Trim leading space
-            if (!remaining.empty() && remaining[0] == ' ') {
-              remaining = remaining.substr(1);
-            }
-          }
-          it.print(64, y_pos, id(message_font), CYAN, TextAlign::TOP_CENTER, line.c_str());
-          y_pos += line_height;
-          line_count++;
+        // Message text (left-aligned, wrapped)
+        auto lines = wrap_text(msg, 18);
+        int y = CONTENT_Y + 14;
+        int max_lines = 5;
+        int line_num = 0;
+        for (const auto& line : lines) {
+          if (line_num >= max_lines) break;
+          it.print(PAD, y, id(message_font), ACCENT, line.c_str());
+          y += ${line_height};
+          line_num++;
         }
       }
 
-      // === FOOTER (y=112-128) ===
-      it.horizontal_line(0, 112, 128, GRAY);
+      // --- FOOTER ---
+      it.horizontal_line(0, FOOTER_Y, W, MUTED);
 
-      // Light sensor on left
-      it.printf(4, 116, id(pixel_font), YELLOW, "L:%.0f%%", id(light_sensor).state);
+      // Light level (left)
+      it.printf(PAD, ${footer_text_y}, id(pixel_font), MUTED, "%.0f%%", id(light_sensor).state);
 
-      // Hint on right
+      // Delete hint (right)
       if (msg_count > 0) {
-        it.print(124, 116, id(pixel_font), RED, TextAlign::TOP_RIGHT, "[X] del");
+        it.print(W - PAD, ${footer_text_y}, id(pixel_font), ERR, TextAlign::TOP_RIGHT, "X DEL");
       }

@@ -2,7 +2,10 @@
 # ED1 Status Display - Modular ESPHome Configuration
 # ==============================================================================
 #
-# A status display showing WiFi, sensors, and system info.
+# A dashboard-style status display with hero metric and bar graphs.
+# - Big temperature reading as primary focus
+# - Bar graphs for light level and signal strength
+# - Uptime counter in footer
 #
 # Usage:
 #   1. Copy this file and rename (e.g., ed1-kitchen.yaml)
@@ -17,6 +20,8 @@ substitutions:
   ap_ssid: ED1-Status-Rescue
 
 packages:
+  colors: !include packages/display-colors.yaml
+  layout: !include packages/display-layout.yaml
   core: !include packages/core.yaml
   hardware: !include packages/hardware.yaml
   display: !include packages/display.yaml
@@ -40,85 +45,134 @@ globals:
     type: bool
     initial_value: 'false'
 
-# Status display layout
+# Time sync
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Madrid
+
+# Dashboard display layout - TE "Dashboard" style
 display:
   - id: !extend internal_display
     lambda: |-
-      // Colors
-      auto BLACK = Color(0, 0, 0);
-      auto WHITE = Color(255, 255, 255);
-      auto GREEN = Color(0, 255, 0);
-      auto CYAN = Color(0, 255, 255);
-      auto YELLOW = Color(255, 255, 0);
-      auto ORANGE = Color(255, 165, 0);
-      auto RED = Color(255, 0, 0);
+      // ===========================================
+      // COLORS (from display-colors.yaml)
+      // ===========================================
+      auto BG      = Color(${color_bg});
+      auto TEXT    = Color(${color_text});
+      auto MUTED   = Color(${color_muted});
+      auto OK      = Color(${color_ok});
+      auto WARN    = Color(${color_warn});
+      auto ERR     = Color(${color_error});
+      auto ACCENT  = Color(${color_accent});
+      auto HIGHLIGHT = Color(${color_highlight});
 
-      it.fill(BLACK);
+      // ===========================================
+      // LAYOUT (from display-layout.yaml)
+      // ===========================================
+      const int W = ${display_width};
+      const int HEADER_H = ${header_height};
+      const int FOOTER_Y = ${footer_y};
+      const int PAD = ${padding};
 
-      // Boot splash screen
+      // ===========================================
+      // HELPER FUNCTIONS
+      // ===========================================
+
+      // Draw horizontal bar graph
+      auto draw_bar = [&](int x, int y, int width, int height, float percent, Color fill_color) {
+        int filled = (int)(width * (percent / 100.0f));
+        if (filled > 0) {
+          it.filled_rectangle(x, y, filled, height, fill_color);
+        }
+        if (filled < width) {
+          it.filled_rectangle(x + filled, y, width - filled, height, MUTED);
+        }
+      };
+
+      // Format uptime
+      auto format_uptime = [](int seconds) {
+        int d = seconds / 86400;
+        int h = (seconds % 86400) / 3600;
+        int m = (seconds % 3600) / 60;
+        char buf[20];
+        if (d > 0) snprintf(buf, sizeof(buf), "%dd %dh %dm", d, h, m);
+        else if (h > 0) snprintf(buf, sizeof(buf), "%dh %dm", h, m);
+        else snprintf(buf, sizeof(buf), "%dm %ds", m, seconds % 60);
+        return std::string(buf);
+      };
+
+      // ===========================================
+      // RENDER
+      // ===========================================
+      it.fill(BG);
+
+      // Boot splash
       if (!id(boot_complete)) {
-        it.print(64, 40, id(large_font), GREEN, TextAlign::CENTER, "ED1");
-        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "Booting...");
+        it.filled_rectangle(0, 40, W, 30, HIGHLIGHT);
+        it.print(W/2, 48, id(large_font), BG, TextAlign::CENTER, "ED1");
+        it.print(W/2, 80, id(pixel_font), MUTED, TextAlign::CENTER, "BOOTING");
         return;
       }
 
-      // Header row: ED1 centered
-      it.print(64, 4, id(large_font), GREEN, TextAlign::TOP_CENTER, "ED1");
+      // --- HEADER ---
+      it.print(PAD, 4, id(pixel_font), HIGHLIGHT, "ED1");
 
-      // WiFi icon on left (20px), centered between SSID and IP rows
-      bool has_ip = !id(wifi_ip).state.empty();
-      if (has_ip) {
-        it.print(4, 26, id(icons_20), GREEN, "\U0000e63e");
+      // Time (right)
+      auto time = id(sntp_time).now();
+      if (time.is_valid()) {
+        it.strftime(W - PAD, 4, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%H:%M", time);
+      }
+
+      // Connection dot
+      bool connected = !id(wifi_ip).state.empty();
+      if (connected) {
+        it.filled_circle(40, 8, 3, OK);
       } else {
-        // Blink yellow every other second
         int sec = (int)id(uptime_sensor).state;
-        if (sec % 2 == 0) {
-          it.print(4, 26, id(icons_20), YELLOW, "\U0000e63e");
-        }
+        it.filled_circle(40, 8, 3, (sec % 2 == 0) ? WARN : BG);
       }
 
-      // SSID and IP to the right of WiFi icon (with spacing)
-      it.print(28, 28, id(pixel_font), CYAN, id(wifi_ssid).state.c_str());
-      it.print(28, 40, id(pixel_font), WHITE, id(wifi_ip).state.c_str());
+      it.horizontal_line(0, HEADER_H, W, MUTED);
 
-      // Signal bars on right of header
+      // --- HERO METRIC (Temperature) ---
+      float temp = id(cpu_temp).state;
+      it.printf(W/2, 32, id(large_font), HIGHLIGHT, TextAlign::TOP_CENTER, "%.0f", temp);
+      it.print(W/2 + 20, 32, id(pixel_font), TEXT, "C");
+      it.print(W/2, 52, id(pixel_font), MUTED, TextAlign::TOP_CENTER, "TEMP");
+
+      // --- BAR GRAPHS ---
+      int bar_y = 70;
+      int bar_width = 70;
+      int bar_height = 6;
+      int label_x = PAD;
+      int bar_x = 40;
+      int value_x = W - PAD;
+
+      // Light level
+      float light = id(light_sensor).state;
+      it.print(label_x, bar_y, id(pixel_font), WARN, "LIGHT");
+      draw_bar(bar_x, bar_y + 2, bar_width, bar_height, light, WARN);
+      it.printf(value_x, bar_y, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%.0f%%", light);
+
+      // Signal strength (convert RSSI to percentage: -100dBm=0%, -50dBm=100%)
+      bar_y += 16;
       int rssi = (int)id(wifi_signal_sensor).state;
-      int bars = 0;
-      Color bar_color = RED;
-      if (rssi > -50) { bars = 4; bar_color = GREEN; }
-      else if (rssi > -60) { bars = 3; bar_color = GREEN; }
-      else if (rssi > -70) { bars = 2; bar_color = YELLOW; }
-      else if (rssi > -80) { bars = 1; bar_color = ORANGE; }
+      float signal_pct = constrain((rssi + 100) * 2, 0, 100);
+      Color sig_color = (rssi > -60) ? OK : (rssi > -75) ? WARN : ERR;
+      it.print(label_x, bar_y, id(pixel_font), sig_color, "RSSI");
+      draw_bar(bar_x, bar_y + 2, bar_width, bar_height, signal_pct, sig_color);
+      it.printf(value_x, bar_y, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%ddB", rssi);
 
-      for (int i = 0; i < 4; i++) {
-        int bar_height = (i + 1) * 3;
-        int bar_x = 110 + (i * 5);
-        int bar_y = 18 - bar_height;
-        if (i < bars) {
-          it.filled_rectangle(bar_x, bar_y, 3, bar_height, bar_color);
-        } else {
-          it.rectangle(bar_x, bar_y, 3, bar_height, bar_color);
-        }
-      }
+      // --- FOOTER ---
+      it.horizontal_line(0, FOOTER_Y, W, MUTED);
 
-      // Light sensor (y=58)
-      it.print(4, 58, id(icons_16), YELLOW, "\U0000e518");
-      it.printf(22, 62, id(pixel_font), WHITE, "%.0f%%", id(light_sensor).state);
-
-      // Temperature (y=78)
-      it.print(4, 78, id(icons_16), ORANGE, "\U0000e1ff");
-      it.printf(22, 82, id(pixel_font), WHITE, "%.0f C", id(cpu_temp).state);
-
-      // Uptime (y=98)
-      it.print(4, 98, id(icons_16), WHITE, "\U0000e8b5");
+      // Uptime
       int seconds = (int)id(uptime_sensor).state;
-      int days = seconds / 86400;
-      int hours = (seconds % 86400) / 3600;
-      int mins = (seconds % 3600) / 60;
-      if (days > 0) {
-        it.printf(22, 102, id(pixel_font), WHITE, "%dd %dh %dm", days, hours, mins);
-      } else if (hours > 0) {
-        it.printf(22, 102, id(pixel_font), WHITE, "%dh %dm", hours, mins);
-      } else {
-        it.printf(22, 102, id(pixel_font), WHITE, "%dm %ds", mins, seconds % 60);
-      }
+      std::string up = format_uptime(seconds);
+      it.print(PAD, ${footer_text_y}, id(pixel_font), MUTED, "UP");
+      it.print(20, ${footer_text_y}, id(pixel_font), TEXT, up.c_str());
+
+      // IP (right)
+      it.print(W - PAD, ${footer_text_y}, id(pixel_font), ACCENT, TextAlign::TOP_RIGHT,
+               id(wifi_ip).state.c_str());

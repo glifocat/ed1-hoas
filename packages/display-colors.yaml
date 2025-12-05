@@ -1,0 +1,26 @@
+# ==============================================================================
+# ED1 Display Colors Package - Teenage Engineering Inspired Palette
+# ==============================================================================
+# Centralized color scheme for all display configurations.
+# Override any color in your device config's substitutions block.
+#
+# Usage in display lambda:
+#   auto BG = Color(${color_bg});
+#   auto OK = Color(${color_ok});
+# ==============================================================================
+
+substitutions:
+  # Background & text
+  color_bg: "0,0,0"           # Black
+  color_text: "255,255,255"   # White
+  color_muted: "80,80,80"     # Gray (borders, inactive)
+  color_dim: "102,102,102"    # Dim gray (secondary text)
+
+  # Status colors
+  color_ok: "0,255,0"         # Green (connected, success)
+  color_warn: "255,255,0"     # Yellow (warning, weak signal)
+  color_error: "255,0,0"      # Red (error, disconnected)
+
+  # Accent colors (TE-inspired)
+  color_accent: "0,255,255"   # Cyan (data, active elements)
+  color_highlight: "255,102,0" # TE Orange (primary accent)
