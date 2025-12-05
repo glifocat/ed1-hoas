@@ -6,7 +6,12 @@
 
 ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP32 educational board with Home Assistant.
 
-![ED1 Board Front](docs/images/ed1-front.png)
+![ED1 Board](docs/images/ed1-board.png)
+
+<p align="center">
+  <img src="docs/images/ed1-front-angle.png" width="45%" alt="ED1 Front View">
+  <img src="docs/images/ed1-back-angle.png" width="45%" alt="ED1 Back View">
+</p>
 
 ## Features
 
@@ -51,9 +56,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
    Choose a sample configuration:
    - `ed1-message.sample.yaml` - Message display with chat log (recommended)
    - `ed1-mqtt.sample.yaml` - Dashboard with MQTT messaging
-   - `ed1-status.sample.yaml` - Status display showing WiFi, sensors, uptime
-   - `ed1-rev23-a.sample.yaml` - Status display with IR receiver
-   - `ed1-full-features.sample.yaml` - All features (TFT + LED matrix + IR)
+   - `ed1-status.sample.yaml` - Status display (WiFi, sensors, uptime, optional IR)
 
    Copy your chosen sample, `secrets.yaml`, the `fonts/` folder, and the `packages/` folder to your ESPHome config directory.
 
@@ -74,15 +77,15 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 ed1-hoas/
 ├── ed1-message.sample.yaml        # Message display with chat log (recommended)
 ├── ed1-mqtt.sample.yaml           # Dashboard with MQTT messaging
-├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime)
-├── ed1-rev23-a.sample.yaml        # Status display with IR receiver
-├── ed1-full-features.sample.yaml  # All features (TFT + LED matrix + IR)
+├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime, optional IR)
 ├── secrets.sample.yaml            # Template for secrets
 ├── secrets.yaml                   # Your credentials (git-ignored)
 ├── packages/                      # Modular ESPHome components
 │   ├── core.yaml                  # ESP32, logger, API, OTA, WiFi
 │   ├── hardware.yaml              # SPI and I2C buses
 │   ├── display.yaml               # TFT ST7735 display
+│   ├── display-colors.yaml        # Color palette definitions
+│   ├── display-layout.yaml        # Screen layout constants
 │   ├── fonts.yaml                 # Fonts + Material Symbols icons
 │   ├── buzzer.yaml                # PWM output + RTTTL melodies
 │   ├── buttons.yaml               # 6 capacitive touch buttons
@@ -98,7 +101,7 @@ ed1-hoas/
 │   ├── PINOUT.md                  # GPIO mapping
 │   ├── ESPHOME.md                 # Configuration guide
 │   ├── HOME-ASSISTANT.md          # Integration guide
-│   ├── images/                    # Board images
+│   ├── images/                    # Board images (CC BY-SA 4.0)
 │   └── datasheets/                # Component PDFs
 ├── CONTRIBUTING.md
 └── LICENSE
@@ -137,6 +140,7 @@ This project is licensed under the Apache License 2.0 - see [LICENSE](LICENSE) a
 - **Created & Maintained by**: [glifocat](https://github.com/glifocat)
 - **Original Hardware Documentation & Advice**: [vcasado](https://github.com/vcasado)
 - **ED1 Board**: [Citilab Edutec](https://citilab.eu)
+- **Board Images**: [Citilab Market](https://market.citilab.eu/es/producte/placa-ed1/) (CC BY-SA 4.0)
 - **ESPHome**: [esphome.io](https://esphome.io)
 - **Pixelmix Font**: [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
 
