@@ -121,6 +121,76 @@ The ED1 is an ESP32-based educational development board designed by [Citilab Edu
 | J11 | Grove | 4 | I2C Grove connector |
 | M1, M2 | JST-XH | 5 | Stepper motor (28BYJ-48) |
 
+## Stepper Motor Control
+
+The ED1 board includes built-in support for two 28BYJ-48 stepper motors via the MCP23009 I2C GPIO expander and ULN2004A Darlington driver arrays.
+
+### Signal Path
+```
+ESP32 ──I2C──► MCP23009 (0x20) ──► ULN2004A ──► 28BYJ-48 Motor
+               GPIO Expander        Darlington
+```
+
+### MCP23009 to Motor Pin Mapping
+
+| MCP23009 GPIO | Signal | ULN2004A | Motor | Coil |
+|---------------|--------|----------|-------|------|
+| GP0 | I2D | U8 pin 1 | M2 | D |
+| GP1 | I2C | U8 pin 2 | M2 | C |
+| GP2 | I2B | U8 pin 3 | M2 | B |
+| GP3 | I2A | U8 pin 4 | M2 | A |
+| GP4 | I1D | U7 pin 4 | M1 | D |
+| GP5 | I1C | U7 pin 3 | M1 | C |
+| GP6 | I1B | U7 pin 2 | M1 | B |
+| GP7 | I1A | U7 pin 1 | M1 | A |
+
+### 28BYJ-48 Specifications
+- **Step angle**: 5.625° (64 steps per motor revolution)
+- **Gear ratio**: 64:1
+- **Steps per output revolution**: 512 (full-step mode) or 4096 (half-step mode)
+- **Operating voltage**: 5V DC
+- **Drive method**: Full-step sequence (4 phases) - matching MicroBlocks implementation
+
+### MCP23009 Initialization
+
+The MCP23009 requires specific register initialization for motor control:
+
+| Register | Address | Value | Purpose |
+|----------|---------|-------|---------|
+| IODIR | 0x00 | 0x00 | Set all 8 pins as outputs |
+| GPPU | 0x06 | 0xFF | Enable internal pull-ups (required!) |
+| GPIO | 0x09 | varies | Motor coil patterns |
+
+**Important**: The GPPU register (pull-ups) must be enabled for reliable motor operation. Without this, the ULN2004A drivers may not receive proper signal levels.
+
+### Full-Step Sequence
+
+The step sequence matches the MicroBlocks "ED1 Stepper Motor" library:
+
+| Phase | Pattern | Motor 1 (upper nibble) | Motor 2 (lower nibble) |
+|-------|---------|------------------------|------------------------|
+| 0 | A+D | 0x90 | 0x09 |
+| 1 | A+B | 0xC0 | 0x0C |
+| 2 | B+C | 0x60 | 0x06 |
+| 3 | C+D | 0x30 | 0x03 |
+
+Timing: ~2ms between steps (1500µs in MicroBlocks)
+
+### ESPHome Usage
+
+Include the stepper package:
+```yaml
+packages:
+  stepper: !include packages/stepper.yaml
+```
+
+This exposes Home Assistant entities for controlling both motors:
+- **Number entities**: Set step count (-4096 to +4096) for precise positioning
+- **Button entities**: Quick rotation (CW/CCW 512 steps = full rotation)
+- **Stop button**: Immediately stop motors and power down coils
+
+The package uses direct I2C register writes (not the ESPHome mcp23008 component) for reliable timing and compatibility with the MicroBlocks implementation.
+
 ## Power System
 
 ### Power Sources

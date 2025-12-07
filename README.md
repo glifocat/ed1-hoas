@@ -25,11 +25,10 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 - **Bluetooth Proxy** - Extends Home Assistant BLE range
 - **WiFi Signal & Uptime Sensors**
 - **CPU Temperature Monitoring**
+- **Stepper Motor Control** (2x 28BYJ-48) - Via MCP23009 I/O expander
 
 ### Planned (Hardware Available)
 - Accelerometer (MXC6655XA)
-- Stepper Motor Control (2x 28BYJ-48)
-- I/O Expander (MCP23009)
 
 ## Prerequisites
 
@@ -93,7 +92,8 @@ ed1-hoas/
 │   ├── bluetooth.yaml             # BLE tracker + proxy
 │   ├── ir-receiver.yaml           # 38kHz IR receiver
 │   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
-│   └── mqtt.yaml                  # MQTT broker connectivity (optional)
+│   ├── mqtt.yaml                  # MQTT broker connectivity (optional)
+│   └── stepper.yaml               # 28BYJ-48 stepper motors via MCP23009
 ├── fonts/
 │   └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ├── docs/
@@ -126,6 +126,8 @@ ed1-hoas/
 | `sensor.ed1_cpu_temperature` | Sensor | CPU temperature |
 | `sensor.ed1_uptime` | Sensor | Device uptime |
 | `switch.ed1_buzzer` | Switch | Buzzer on/off control |
+| `number.ed1_motor_*_steps` | Number | Stepper motor control (steps) |
+| `button.ed1_motor_*_cw/ccw` | Button | Stepper motor rotation buttons |
 
 ## Contributing
 

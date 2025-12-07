@@ -46,7 +46,19 @@ SCL: GPIO22
 | Device | Address | Function |
 |--------|---------|----------|
 | MXC6655XA | 0x15 | Accelerometer |
-| MCP23009 | 0x20 | I/O Expander |
+| MCP23009 | 0x20 | I/O Expander (stepper motors) |
+
+### MCP23009 GPIO Mapping (Stepper Motors)
+```
+GP0: Motor 2 Coil D ──► ULN2004A U8 ──► M2
+GP1: Motor 2 Coil C ──► ULN2004A U8 ──► M2
+GP2: Motor 2 Coil B ──► ULN2004A U8 ──► M2
+GP3: Motor 2 Coil A ──► ULN2004A U8 ──► M2
+GP4: Motor 1 Coil D ──► ULN2004A U7 ──► M1
+GP5: Motor 1 Coil C ──► ULN2004A U7 ──► M1
+GP6: Motor 1 Coil B ──► ULN2004A U7 ──► M1
+GP7: Motor 1 Coil A ──► ULN2004A U7 ──► M1
+```
 
 ## Touch Button Mapping
 

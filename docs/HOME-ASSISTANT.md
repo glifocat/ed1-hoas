@@ -50,6 +50,20 @@ After adding the device, these entities become available:
 |-----------|------|-------------|
 | `text_sensor.ed1_ip_address` | Text Sensor | Device IP address |
 
+### Stepper Motors (requires stepper package)
+
+| Entity ID | Type | Description |
+|-----------|------|-------------|
+| `number.ed1_motor_1_steps` | Number | Set Motor 1 steps (-4096 to +4096) |
+| `number.ed1_motor_2_steps` | Number | Set Motor 2 steps (-4096 to +4096) |
+| `button.ed1_motor_1_cw` | Button | Motor 1 clockwise 512 steps |
+| `button.ed1_motor_1_ccw` | Button | Motor 1 counter-clockwise 512 steps |
+| `button.ed1_motor_2_cw` | Button | Motor 2 clockwise 512 steps |
+| `button.ed1_motor_2_ccw` | Button | Motor 2 counter-clockwise 512 steps |
+| `button.ed1_motors_stop` | Button | Stop motors and power down coils |
+
+**Note**: 512 steps = 1 full rotation (360°)
+
 ### IR Receiver (Logs Only)
 
 The IR receiver does not create Home Assistant entities. Received IR codes appear in the ESPHome logs and can be used to trigger automations via ESPHome actions. See [ESPHOME.md](ESPHOME.md#10-ir-receiver) for configuration details.
@@ -247,6 +261,53 @@ action:
   - service: switch.turn_off
     target:
       entity_id: switch.ed1_buzzer
+```
+
+### Stepper Motor Control
+
+```yaml
+alias: "Rotate Motor 1 half turn"
+trigger:
+  - platform: state
+    entity_id: binary_sensor.ed1_button_up
+    to: "on"
+action:
+  - service: number.set_value
+    target:
+      entity_id: number.ed1_motor_1_steps
+    data:
+      value: 256  # Half turn (180°)
+```
+
+### Open/Close with Steppers
+
+```yaml
+alias: "ED1 Motor Blinds Control"
+trigger:
+  - platform: state
+    entity_id: input_boolean.blinds_open
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.blinds_open
+            state: "on"
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ed1_motor_1_steps
+            data:
+              value: 1024  # Open position
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.blinds_open
+            state: "off"
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ed1_motor_1_steps
+            data:
+              value: -1024  # Close position
 ```
 
 ## Scripts
