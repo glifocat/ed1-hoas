@@ -1,0 +1,364 @@
+# ==============================================================================
+# ED1 Stepper Motor Package
+# ==============================================================================
+# Controls two 28BYJ-48 stepper motors via MCP23009 I2C GPIO expander
+#
+# Pin Mapping (from schematic ED-1.sch):
+#   Motor 1 (M1): GP4=D, GP5=C, GP6=B, GP7=A
+#   Motor 2 (M2): GP0=D, GP1=C, GP2=B, GP3=A
+#
+# Motor Specs (Full-Step mode, matching MicroBlocks implementation):
+#   - 28BYJ-48 5V unipolar stepper
+#   - Full-step mode: 512 steps per revolution
+#   - Step sequence: A+D -> A+B -> B+C -> C+D
+#   - Timing: ~2ms between steps
+#
+# Usage:
+#   Include this package and use the number entities to command steps:
+#     number.set:
+#       id: motor1_steps
+#       value: 128  # Rotate 1/4 turn forward (512 steps = full rotation)
+# ==============================================================================
+
+# Direct I2C control of MCP23009 (no ESPHome component, pure register writes)
+# This avoids any conflicts with the ESPHome mcp23008 component
+
+globals:
+  # Motor 1 state
+  - id: motor1_phase
+    type: int
+    initial_value: '0'
+  - id: motor1_remaining
+    type: int
+    initial_value: '0'
+  - id: motor1_direction
+    type: int
+    initial_value: '1'
+
+  # Motor 2 state
+  - id: motor2_phase
+    type: int
+    initial_value: '0'
+  - id: motor2_remaining
+    type: int
+    initial_value: '0'
+  - id: motor2_direction
+    type: int
+    initial_value: '1'
+
+  # MCP23009 initialized flag
+  - id: mcp_initialized
+    type: bool
+    initial_value: 'false'
+
+# Non-blocking stepper interval - runs every 2ms (matching MicroBlocks ~1.5ms timing)
+interval:
+  - interval: 2ms
+    then:
+      - lambda: |-
+          // MCP23009 register addresses
+          const uint8_t MCP_ADDR = 0x20;
+          const uint8_t REG_IODIR = 0x00;
+          const uint8_t REG_GPIO = 0x09;
+
+          // Initialize on first run - matching MicroBlocks exactly
+          if (!id(mcp_initialized)) {
+            ESP_LOGI("stepper", "Initializing MCP23009 (matching MicroBlocks)");
+
+            // Step 1: Force IODIR register to 0x00 (all outputs)
+            // MicroBlocks: i2cSet 0x20 0 0
+            uint8_t cmd[2] = {REG_IODIR, 0x00};
+            auto result = id(bus_i2c).write(MCP_ADDR, cmd, 2);
+            if (result == esphome::i2c::ERROR_OK) {
+              ESP_LOGI("stepper", "IODIR set to 0x00 - all pins are outputs");
+            } else {
+              ESP_LOGE("stepper", "Failed to set IODIR! I2C error=%d", (int)result);
+            }
+
+            // Step 2: Set GPPU register to 0xFF (enable pull-ups)
+            // MicroBlocks: i2cSet 0x20 6 255
+            const uint8_t REG_GPPU = 0x06;
+            cmd[0] = REG_GPPU;
+            cmd[1] = 0xFF;
+            result = id(bus_i2c).write(MCP_ADDR, cmd, 2);
+            if (result == esphome::i2c::ERROR_OK) {
+              ESP_LOGI("stepper", "GPPU set to 0xFF - pull-ups enabled");
+            } else {
+              ESP_LOGE("stepper", "Failed to set GPPU! I2C error=%d", (int)result);
+            }
+
+            // Read back IODIR to verify
+            uint8_t reg_addr = REG_IODIR;
+            uint8_t iodir_val = 0xFF;
+            id(bus_i2c).write(MCP_ADDR, &reg_addr, 1);
+            id(bus_i2c).read(MCP_ADDR, &iodir_val, 1);
+            ESP_LOGW("stepper", "IODIR readback: 0x%02X (expect 0x00)", iodir_val);
+
+            // Clear GPIO to start (all coils off)
+            cmd[0] = REG_GPIO;
+            cmd[1] = 0x00;
+            id(bus_i2c).write(MCP_ADDR, cmd, 2);
+            ESP_LOGI("stepper", "GPIO initialized to 0x00");
+
+            id(mcp_initialized) = true;
+            return;
+          }
+
+          // FULL-STEP sequences (matching MicroBlocks implementation)
+          // 4 phases, 512 steps per revolution
+          // Sequence: A+D -> A+B -> B+C -> C+D (clockwise)
+          //
+          // Motor 1: GP4=D, GP5=C, GP6=B, GP7=A (upper nibble, shift left 4)
+          // Motor 2: GP0=D, GP1=C, GP2=B, GP3=A (lower nibble)
+          //
+          // MicroBlocks uses: 0x9(A+D), 0xC(A+B), 0x6(B+C), 0x3(C+D)
+          static const uint8_t M1_STEP[4] = {
+            0x90,  // A+D (GP7+GP4)
+            0xC0,  // A+B (GP7+GP6)
+            0x60,  // B+C (GP6+GP5)
+            0x30   // C+D (GP5+GP4)
+          };
+          static const uint8_t M2_STEP[4] = {
+            0x09,  // A+D (GP3+GP0)
+            0x0C,  // A+B (GP3+GP2)
+            0x06,  // B+C (GP2+GP1)
+            0x03   // C+D (GP1+GP0)
+          };
+
+          // Check if any motor needs to step
+          if (id(motor1_remaining) == 0 && id(motor2_remaining) == 0) {
+            return;  // Nothing to do
+          }
+
+          // Calculate new GPIO value
+          uint8_t gpio_val = 0;
+
+          // Motor 1 stepping (4 phases for full-step)
+          if (id(motor1_remaining) > 0) {
+            id(motor1_phase) = (id(motor1_phase) + id(motor1_direction) + 4) % 4;
+            id(motor1_remaining)--;
+            gpio_val |= M1_STEP[id(motor1_phase)];
+          }
+
+          // Motor 2 stepping (4 phases for full-step)
+          if (id(motor2_remaining) > 0) {
+            id(motor2_phase) = (id(motor2_phase) + id(motor2_direction) + 4) % 4;
+            id(motor2_remaining)--;
+            gpio_val |= M2_STEP[id(motor2_phase)];
+          }
+
+          // Write GPIO value directly via I2C (single transaction, much faster)
+          uint8_t cmd[2] = {REG_GPIO, gpio_val};
+          id(bus_i2c).write(MCP_ADDR, cmd, 2);
+
+          // Log first step and every 100 steps
+          static int log_counter = 0;
+          static bool first_step = true;
+          if (first_step || ++log_counter >= 100) {
+            ESP_LOGI("stepper", "Step: gpio=0x%02X, M1=%d, M2=%d",
+                     gpio_val, id(motor1_remaining), id(motor2_remaining));
+            log_counter = 0;
+            first_step = false;
+          }
+
+script:
+  # Diagnostic: Read MCP23008 registers to verify configuration
+  - id: mcp_diagnostic
+    then:
+      - lambda: |-
+          // MCP23008/MCP23009 register addresses
+          const uint8_t MCP_ADDR = 0x20;
+          const uint8_t REG_IODIR = 0x00;  // I/O direction register
+          const uint8_t REG_GPIO = 0x09;   // GPIO register
+          const uint8_t REG_OLAT = 0x0A;   // Output latch register
+
+          uint8_t reg_addr;
+          uint8_t reg_value;
+
+          // Read IODIR register (should be 0x00 for all outputs)
+          reg_addr = REG_IODIR;
+          if (id(bus_i2c).write(MCP_ADDR, &reg_addr, 1) == esphome::i2c::ERROR_OK) {
+            if (id(bus_i2c).read(MCP_ADDR, &reg_value, 1) == esphome::i2c::ERROR_OK) {
+              ESP_LOGW("mcp_diag", "IODIR register: 0x%02X (expect 0x00 for outputs)", reg_value);
+            } else {
+              ESP_LOGE("mcp_diag", "Failed to read IODIR register");
+            }
+          } else {
+            ESP_LOGE("mcp_diag", "Failed to write IODIR address");
+          }
+
+          // Read GPIO register (current pin states)
+          reg_addr = REG_GPIO;
+          if (id(bus_i2c).write(MCP_ADDR, &reg_addr, 1) == esphome::i2c::ERROR_OK) {
+            if (id(bus_i2c).read(MCP_ADDR, &reg_value, 1) == esphome::i2c::ERROR_OK) {
+              ESP_LOGW("mcp_diag", "GPIO register: 0x%02X", reg_value);
+            } else {
+              ESP_LOGE("mcp_diag", "Failed to read GPIO register");
+            }
+          } else {
+            ESP_LOGE("mcp_diag", "Failed to write GPIO address");
+          }
+
+          // Read OLAT register (output latch)
+          reg_addr = REG_OLAT;
+          if (id(bus_i2c).write(MCP_ADDR, &reg_addr, 1) == esphome::i2c::ERROR_OK) {
+            if (id(bus_i2c).read(MCP_ADDR, &reg_value, 1) == esphome::i2c::ERROR_OK) {
+              ESP_LOGW("mcp_diag", "OLAT register: 0x%02X", reg_value);
+            } else {
+              ESP_LOGE("mcp_diag", "Failed to read OLAT register");
+            }
+          } else {
+            ESP_LOGE("mcp_diag", "Failed to write OLAT address");
+          }
+
+          // Try writing directly to IODIR to force outputs
+          uint8_t cmd[2] = {REG_IODIR, 0x00};  // Set all pins as outputs
+          if (id(bus_i2c).write(MCP_ADDR, cmd, 2) == esphome::i2c::ERROR_OK) {
+            ESP_LOGW("mcp_diag", "Forced IODIR to 0x00 (all outputs)");
+          } else {
+            ESP_LOGE("mcp_diag", "Failed to force IODIR!");
+          }
+
+          // Now test writing a pattern to GPIO
+          cmd[0] = REG_GPIO;
+          cmd[1] = 0x55;  // Alternating pattern
+          if (id(bus_i2c).write(MCP_ADDR, cmd, 2) == esphome::i2c::ERROR_OK) {
+            ESP_LOGW("mcp_diag", "Wrote test pattern 0x55 to GPIO");
+          } else {
+            ESP_LOGE("mcp_diag", "Failed to write test pattern!");
+          }
+
+          // Read back GPIO to verify
+          reg_addr = REG_GPIO;
+          if (id(bus_i2c).write(MCP_ADDR, &reg_addr, 1) == esphome::i2c::ERROR_OK) {
+            if (id(bus_i2c).read(MCP_ADDR, &reg_value, 1) == esphome::i2c::ERROR_OK) {
+              ESP_LOGW("mcp_diag", "GPIO readback after write: 0x%02X (expect 0x55)", reg_value);
+            }
+          }
+
+  # Motor 1 - queue steps (non-blocking)
+  - id: motor1_run
+    parameters:
+      steps: int
+    then:
+      - lambda: |-
+          // Set direction and step count
+          id(motor1_direction) = (steps > 0) ? 1 : -1;
+          id(motor1_remaining) = abs(steps);
+          ESP_LOGI("stepper", "Motor 1: queued %d steps, direction=%d", abs(steps), id(motor1_direction));
+
+  # Motor 2 - queue steps (non-blocking)
+  - id: motor2_run
+    parameters:
+      steps: int
+    then:
+      - lambda: |-
+          id(motor2_direction) = (steps > 0) ? 1 : -1;
+          id(motor2_remaining) = abs(steps);
+          ESP_LOGI("stepper", "Motor 2: queued %d steps, direction=%d", abs(steps), id(motor2_direction));
+
+  # Stop all motors
+  - id: motors_stop
+    then:
+      - lambda: |-
+          // Clear step counters
+          id(motor1_remaining) = 0;
+          id(motor2_remaining) = 0;
+
+          // Power down all coils using direct I2C write
+          const uint8_t MCP_ADDR = 0x20;
+          const uint8_t REG_GPIO = 0x09;
+          uint8_t cmd[2] = {REG_GPIO, 0x00};
+          id(bus_i2c).write(MCP_ADDR, cmd, 2);
+
+          ESP_LOGI("stepper", "Motors stopped - all coils off");
+
+number:
+  - platform: template
+    name: "${friendly_name} Motor 1 Steps"
+    id: motor1_steps
+    min_value: -4096
+    max_value: 4096
+    step: 1
+    initial_value: 0
+    optimistic: true
+    restore_value: false
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return x != 0;'
+            then:
+              - script.execute:
+                  id: motor1_run
+                  steps: !lambda 'return (int)x;'
+              - number.set:
+                  id: motor1_steps
+                  value: 0
+
+  - platform: template
+    name: "${friendly_name} Motor 2 Steps"
+    id: motor2_steps
+    min_value: -4096
+    max_value: 4096
+    step: 1
+    initial_value: 0
+    optimistic: true
+    restore_value: false
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return x != 0;'
+            then:
+              - script.execute:
+                  id: motor2_run
+                  steps: !lambda 'return (int)x;'
+              - number.set:
+                  id: motor2_steps
+                  value: 0
+
+button:
+  - platform: template
+    name: "${friendly_name} Motor 1 CW"
+    icon: mdi:rotate-right
+    on_press:
+      - script.execute:
+          id: motor1_run
+          steps: 512
+
+  - platform: template
+    name: "${friendly_name} Motor 1 CCW"
+    icon: mdi:rotate-left
+    on_press:
+      - script.execute:
+          id: motor1_run
+          steps: -512
+
+  - platform: template
+    name: "${friendly_name} Motor 2 CW"
+    icon: mdi:rotate-right
+    on_press:
+      - script.execute:
+          id: motor2_run
+          steps: 512
+
+  - platform: template
+    name: "${friendly_name} Motor 2 CCW"
+    icon: mdi:rotate-left
+    on_press:
+      - script.execute:
+          id: motor2_run
+          steps: -512
+
+  - platform: template
+    name: "${friendly_name} Motors Stop"
+    icon: mdi:stop
+    on_press:
+      - script.execute: motors_stop
+
+  - platform: template
+    name: "${friendly_name} Motor Diagnostic"
+    icon: mdi:stethoscope
+    on_press:
+      - script.execute: mcp_diagnostic

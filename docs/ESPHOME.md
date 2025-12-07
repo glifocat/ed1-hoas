@@ -22,7 +22,8 @@ ed1-hoas/
 │   ├── bluetooth.yaml             # BLE tracker + proxy
 │   ├── ir-receiver.yaml           # 38kHz IR receiver
 │   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
-│   └── mqtt.yaml                  # MQTT broker connectivity (optional)
+│   ├── mqtt.yaml                  # MQTT broker connectivity (optional)
+│   └── stepper.yaml               # 28BYJ-48 stepper motors via MCP23009
 └── fonts/
     └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
 ```
@@ -284,6 +285,50 @@ mqtt:
 - Use **native API** for Home Assistant integration (auto-discovery, encryption)
 - Use **MQTT** for multi-system integration (Node-RED, scripts, other devices)
 - Both can be used simultaneously
+
+### Stepper Motors (packages/stepper.yaml)
+
+Controls two 28BYJ-48 stepper motors via the MCP23009 I2C GPIO expander and ULN2004A Darlington drivers.
+
+```yaml
+packages:
+  stepper: !include packages/stepper.yaml
+```
+
+**Technical Details:**
+- Uses direct I2C register writes (not ESPHome's mcp23008 component)
+- Full-step mode: 512 steps = 1 complete revolution
+- Non-blocking interval-based stepping (2ms per step)
+- Compatible with MicroBlocks "ED1 Stepper Motor" library
+
+**Exposed Entities:**
+
+| Entity | Type | Description |
+|--------|------|-------------|
+| `number.motor1_steps` | Number | Set steps for Motor 1 (-4096 to +4096) |
+| `number.motor2_steps` | Number | Set steps for Motor 2 (-4096 to +4096) |
+| `button.motor1_cw` | Button | Rotate Motor 1 clockwise (512 steps) |
+| `button.motor1_ccw` | Button | Rotate Motor 1 counter-clockwise |
+| `button.motor2_cw` | Button | Rotate Motor 2 clockwise (512 steps) |
+| `button.motor2_ccw` | Button | Rotate Motor 2 counter-clockwise |
+| `button.motors_stop` | Button | Stop all motors and power down coils |
+| `button.motor_diagnostic` | Button | Log MCP23009 register values |
+
+**Usage Example:**
+```yaml
+# In your main config, extend button behavior
+binary_sensor:
+  - id: !extend btn_up
+    on_press:
+      - script.execute:
+          id: motor1_run
+          steps: 128  # 1/4 turn forward
+```
+
+**Step Counts:**
+- 128 steps = 1/4 turn (90°)
+- 256 steps = 1/2 turn (180°)
+- 512 steps = 1 full turn (360°)
 
 ### Buzzer (packages/buzzer.yaml)
 

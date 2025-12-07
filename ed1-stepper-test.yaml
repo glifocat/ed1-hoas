@@ -1,0 +1,140 @@
+# ==============================================================================
+# ED1 Stepper Motor Test - Test 28BYJ-48 steppers via MCP23009
+# ==============================================================================
+#
+# Test configuration for stepper motors using the stepper package.
+# Full-step mode: 512 steps = 1 full rotation
+#
+# Controls:
+#   UP:    Motor 1 forward 128 steps (1/4 turn)
+#   DOWN:  Motor 1 backward 128 steps
+#   LEFT:  Motor 2 forward 128 steps
+#   RIGHT: Motor 2 backward 128 steps
+#   OK:    Full rotation Motor 1 (512 steps)
+#   X:     Stop all motors (power down coils)
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-stepper
+  friendly_name: ED1 Stepper Test
+  ap_ssid: ED1-Stepper-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  stepper: !include packages/stepper.yaml
+
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+  - id: status_text
+    type: std::string
+    initial_value: '"Ready"'
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g'
+      - delay: 1s
+      - lambda: 'id(boot_complete) = true;'
+      - logger.log: "Stepper test ready - use buttons to control motors"
+
+# Button controls
+binary_sensor:
+  # Motor 1 forward (UP button) - 1/4 turn
+  - id: !extend btn_up
+    on_press:
+      - lambda: 'id(status_text) = "M1 FWD";'
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - script.execute:
+          id: motor1_run
+          steps: 128
+
+  # Motor 1 backward (DOWN button) - 1/4 turn
+  - id: !extend btn_down
+    on_press:
+      - lambda: 'id(status_text) = "M1 REV";'
+      - rtttl.play: 'beep:d=16,o=5,b=140:e'
+      - script.execute:
+          id: motor1_run
+          steps: -128
+
+  # Motor 2 forward (LEFT button) - 1/4 turn
+  - id: !extend btn_left
+    on_press:
+      - lambda: 'id(status_text) = "M2 FWD";'
+      - rtttl.play: 'beep:d=16,o=5,b=140:g'
+      - script.execute:
+          id: motor2_run
+          steps: 128
+
+  # Motor 2 backward (RIGHT button) - 1/4 turn
+  - id: !extend btn_right
+    on_press:
+      - lambda: 'id(status_text) = "M2 REV";'
+      - rtttl.play: 'beep:d=16,o=5,b=140:a'
+      - script.execute:
+          id: motor2_run
+          steps: -128
+
+  # Full rotation Motor 1 (OK button) - 512 steps = 1 revolution
+  - id: !extend btn_ok
+    on_press:
+      - lambda: 'id(status_text) = "M1 FULL";'
+      - rtttl.play: 'go:d=8,o=5,b=140:c,e,g'
+      - script.execute:
+          id: motor1_run
+          steps: 512
+
+  # Stop / power down (X button)
+  - id: !extend btn_x
+    on_press:
+      - script.execute: motors_stop
+      - lambda: 'id(status_text) = "STOPPED";'
+      - rtttl.play: 'stop:d=8,o=4,b=140:c,c,c'
+
+# Status display
+display:
+  - id: !extend internal_display
+    lambda: |-
+      auto BLACK = Color(0, 0, 0);
+      auto WHITE = Color(255, 255, 255);
+      auto GREEN = Color(0, 255, 0);
+      auto YELLOW = Color(255, 220, 100);
+      auto CYAN = Color(100, 200, 255);
+      auto GRAY = Color(80, 80, 80);
+      auto ORANGE = Color(255, 150, 50);
+
+      it.fill(BLACK);
+
+      if (!id(boot_complete)) {
+        it.print(64, 50, id(large_font), GREEN, TextAlign::CENTER, "STEPPER");
+        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "TEST");
+        return;
+      }
+
+      // Title
+      it.print(64, 2, id(pixel_font), GREEN, TextAlign::TOP_CENTER, "Stepper Test");
+      it.horizontal_line(0, 14, 128, GRAY);
+
+      // Status
+      it.print(64, 24, id(pixel_font), WHITE, TextAlign::TOP_CENTER, "Status:");
+      it.printf(64, 42, id(large_font), CYAN, TextAlign::TOP_CENTER, "%s", id(status_text).c_str());
+
+      // Motor phase display
+      it.printf(10, 65, id(pixel_font), ORANGE, "M1 phase: %d", id(motor1_phase));
+      it.printf(10, 77, id(pixel_font), ORANGE, "M2 phase: %d", id(motor2_phase));
+
+      // Instructions
+      it.horizontal_line(0, 90, 128, GRAY);
+      it.print(64, 94, id(pixel_font), YELLOW, TextAlign::TOP_CENTER, "UP/DN: Motor 1");
+      it.print(64, 106, id(pixel_font), YELLOW, TextAlign::TOP_CENTER, "LT/RT: Motor 2");
+      it.print(64, 118, id(pixel_font), GRAY, TextAlign::TOP_CENTER, "OK:Full  X:Stop");
