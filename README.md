@@ -15,20 +15,22 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 
 ## Features
 
-### Implemented
+### Built-in Hardware
 - **1.44" TFT Display** (ST7735) - Shows device status, IP, temperature
-- **32x8 LED Matrix** (WS2812) - Controllable from Home Assistant
 - **6 Capacitive Touch Buttons** - Exposed as binary sensors
 - **Light Sensor** - Ambient light percentage
 - **Buzzer** - PWM audio output
 - **IR Receiver** (38kHz) - Remote control support
-- **Bluetooth Proxy** - Extends Home Assistant BLE range
 - **WiFi Signal & Uptime Sensors**
 - **CPU Temperature Monitoring**
-- **Stepper Motor Control** (2x 28BYJ-48) - Via MCP23009 I/O expander
+- **Bluetooth Proxy** - Extends Home Assistant BLE range
 
-### Planned (Hardware Available)
-- Accelerometer (MXC6655XA)
+### Expansion Support (External Peripherals)
+- **LED Matrix** (WS2812) - GPIO12 output for LED strips (e.g., 32x8 = 256 LEDs)
+- **Stepper Motors** (2x 28BYJ-48) - Via MCP23009 I/O expander and ULN2004A drivers
+
+### Planned
+- Accelerometer (MXC6655XA on Rev 2.3, LIS3DH on Rev 1.0)
 
 ## Prerequisites
 
