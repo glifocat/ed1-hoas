@@ -197,9 +197,9 @@ display:
         }
       };
 
-      // Draw signal bars
+      // Draw signal bars - uses wifi_rssi global (safe, no NaN)
       auto draw_signal_bars = [&](int x, int y) {
-        int rssi = (int)id(wifi_signal_sensor).state;
+        int rssi = id(wifi_rssi);
         int bars = (rssi > -50) ? 4 : (rssi > -60) ? 3 :
                    (rssi > -70) ? 2 : (rssi > -80) ? 1 : 0;
         for (int i = 0; i < 4; i++) {

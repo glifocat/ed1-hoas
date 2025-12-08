@@ -283,9 +283,8 @@ display:
         it.print(52, 6, id(pixel_font), WARN, "WAIT");
       }
 
-      // Signal bars (right)
-      int rssi = (int)id(wifi_signal_sensor).state;
-      draw_signal_bars(W - PAD, 4, rssi, OK, WARN, ERR, MUTED);
+      // Signal bars (right) - uses wifi_rssi global (safe, no NaN)
+      draw_signal_bars(W - PAD, 4, id(wifi_rssi), OK, WARN, ERR, MUTED);
 
       it.horizontal_line(0, HEADER_H, W, MUTED);
 
