@@ -33,9 +33,11 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
 ## Prerequisites
 
 - [Home Assistant](https://www.home-assistant.io/) with [ESPHome Add-on](https://esphome.io/guides/getting_started_hassio.html)
-- ED1 Citilab Board (Rev 2.3)
+- ED1 Citilab Board (Rev 1.0 or Rev 2.3)
 - USB-C cable
 - [CP210x USB Driver](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers) (required for USB communication)
+
+> **Note**: Core packages work on both revisions. The stepper motor package is designed for Rev 2.3's MCP23009. See [Hardware Reference](docs/HARDWARE.md#hardware-revisions) for revision differences.
 
 ## Quick Start
 

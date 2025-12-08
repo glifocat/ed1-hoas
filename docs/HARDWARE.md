@@ -165,7 +165,9 @@ The MCP23009 requires specific register initialization for motor control:
 
 ### Full-Step Sequence
 
-The step sequence matches the MicroBlocks "ED1 Stepper Motor" library:
+The step sequence matches the [MicroBlocks](https://microblocks.fun/) "ED1 Stepper Motor" library, which was used as the reference implementation. MicroBlocks is the official programming environment for the ED1 board.
+
+Source: [MicroBlocks ED1 Library](https://wiki.microblocks.fun/en/extension_libraries/ed1)
 
 | Phase | Pattern | Motor 1 (upper nibble) | Motor 2 (lower nibble) |
 |-------|---------|------------------------|------------------------|
@@ -260,8 +262,30 @@ Component datasheets are included in `docs/datasheets/`:
 - [PAM2401 Buck-Boost](datasheets/PAM2401-buck-boost.pdf)
 - [CP2102N USB-UART](datasheets/CP2102N-usb-uart.pdf)
 
-## Hardware Revision
+## Hardware Revisions
 
-This documentation covers **ED1 Rev 2.3**.
+This documentation primarily covers **ED1 Rev 2.3**, but packages have been tested on both revisions.
+
+### Revision Differences
+
+| Component | Rev 1.0 | Rev 2.3 |
+|-----------|---------|---------|
+| Accelerometer | LIS3DH (0x19) | MXC6655XA (0x15) |
+| I/O Expander | MCP23017 (0x20) | MCP23009 (0x20) |
+| Stepper Driver ICs | ULN2004A | ULN2004A |
+
+### Compatibility Notes
+
+- **Core packages** (display, buttons, sensors, buzzer, etc.) work on both revisions
+- **Stepper package** (`packages/stepper.yaml`) is designed for Rev 2.3's MCP23009
+  - Rev 1.0 uses MCP23017 which has different register addresses
+  - The MCP23017 has 16 GPIO pins vs MCP23009's 8 pins
+- **Accelerometer** is not yet implemented in ESPHome packages
+
+### Identifying Your Revision
+
+Check the I2C scan on boot (in ESPHome logs):
+- `0x15` + `0x20` = Rev 2.3 (MXC6655XA + MCP23009)
+- `0x19` + `0x20` = Rev 1.0 (LIS3DH + MCP23017)
 
 The original KiCad design files and full schematics are available from [Citilab](https://citilab.eu).
