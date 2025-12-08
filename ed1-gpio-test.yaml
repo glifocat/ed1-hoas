@@ -1,0 +1,273 @@
+# ==============================================================================
+# ED1 GPIO Test - Debug MCP23009 outputs
+# ==============================================================================
+#
+# Simple test to toggle individual MCP23009 GPIO pins
+# to verify which pins control which motor coils.
+#
+# Controls:
+#   - UP: Toggle GP0-GP3 (Motor 2 pins) in sequence
+#   - DOWN: Toggle GP4-GP7 (Motor 1 pins) in sequence
+#   - OK: All pins OFF
+#   - X: All pins ON (briefly)
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-gpio-test
+  friendly_name: ED1 GPIO Test
+  ap_ssid: ED1-GPIO-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+
+# MCP23009 I/O Expander (register-compatible with MCP23008)
+mcp23008:
+  - id: mcp23009
+    address: 0x20
+
+# Individual GPIO outputs for testing
+output:
+  # Motor 2 pins (M2 via U8)
+  - platform: gpio
+    id: gp0
+    pin:
+      mcp23xxx: mcp23009
+      number: 0
+      mode:
+        output: true
+  - platform: gpio
+    id: gp1
+    pin:
+      mcp23xxx: mcp23009
+      number: 1
+      mode:
+        output: true
+  - platform: gpio
+    id: gp2
+    pin:
+      mcp23xxx: mcp23009
+      number: 2
+      mode:
+        output: true
+  - platform: gpio
+    id: gp3
+    pin:
+      mcp23xxx: mcp23009
+      number: 3
+      mode:
+        output: true
+
+  # Motor 1 pins (M1 via U7)
+  - platform: gpio
+    id: gp4
+    pin:
+      mcp23xxx: mcp23009
+      number: 4
+      mode:
+        output: true
+  - platform: gpio
+    id: gp5
+    pin:
+      mcp23xxx: mcp23009
+      number: 5
+      mode:
+        output: true
+  - platform: gpio
+    id: gp6
+    pin:
+      mcp23xxx: mcp23009
+      number: 6
+      mode:
+        output: true
+  - platform: gpio
+    id: gp7
+    pin:
+      mcp23xxx: mcp23009
+      number: 7
+      mode:
+        output: true
+
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+  - id: test_step
+    type: int
+    initial_value: '0'
+  - id: status_msg
+    type: std::string
+    initial_value: '"Ready"'
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g'
+      - delay: 1s
+      - lambda: 'id(boot_complete) = true;'
+      # Turn all pins off initially
+      - output.turn_off: gp0
+      - output.turn_off: gp1
+      - output.turn_off: gp2
+      - output.turn_off: gp3
+      - output.turn_off: gp4
+      - output.turn_off: gp5
+      - output.turn_off: gp6
+      - output.turn_off: gp7
+
+# Button controls for testing
+binary_sensor:
+  # Test Motor 2 pins (GP0-GP3) - cycle through
+  - id: !extend btn_up
+    on_press:
+      - lambda: |-
+          id(test_step) = (id(test_step) + 1) % 5;
+          id(status_msg) = "M2: GP" + std::to_string(id(test_step) - 1);
+      - output.turn_off: gp0
+      - output.turn_off: gp1
+      - output.turn_off: gp2
+      - output.turn_off: gp3
+      - lambda: |-
+          switch(id(test_step)) {
+            case 1: id(gp0).turn_on(); id(status_msg) = "M2: GP0 ON"; break;
+            case 2: id(gp1).turn_on(); id(status_msg) = "M2: GP1 ON"; break;
+            case 3: id(gp2).turn_on(); id(status_msg) = "M2: GP2 ON"; break;
+            case 4: id(gp3).turn_on(); id(status_msg) = "M2: GP3 ON"; break;
+            default: id(status_msg) = "M2: All OFF"; break;
+          }
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+
+  # Test Motor 1 pins (GP4-GP7) - cycle through
+  - id: !extend btn_down
+    on_press:
+      - lambda: |-
+          id(test_step) = (id(test_step) + 1) % 5;
+      - output.turn_off: gp4
+      - output.turn_off: gp5
+      - output.turn_off: gp6
+      - output.turn_off: gp7
+      - lambda: |-
+          switch(id(test_step)) {
+            case 1: id(gp4).turn_on(); id(status_msg) = "M1: GP4 ON"; break;
+            case 2: id(gp5).turn_on(); id(status_msg) = "M1: GP5 ON"; break;
+            case 3: id(gp6).turn_on(); id(status_msg) = "M1: GP6 ON"; break;
+            case 4: id(gp7).turn_on(); id(status_msg) = "M1: GP7 ON"; break;
+            default: id(status_msg) = "M1: All OFF"; break;
+          }
+      - rtttl.play: 'beep:d=16,o=5,b=140:e'
+
+  # All OFF
+  - id: !extend btn_ok
+    on_press:
+      - output.turn_off: gp0
+      - output.turn_off: gp1
+      - output.turn_off: gp2
+      - output.turn_off: gp3
+      - output.turn_off: gp4
+      - output.turn_off: gp5
+      - output.turn_off: gp6
+      - output.turn_off: gp7
+      - lambda: 'id(status_msg) = "All OFF"; id(test_step) = 0;'
+      - rtttl.play: 'off:d=8,o=4,b=100:c'
+
+  # All ON briefly (to see if anything happens)
+  - id: !extend btn_x
+    on_press:
+      - lambda: 'id(status_msg) = "All ON!";'
+      - output.turn_on: gp0
+      - output.turn_on: gp1
+      - output.turn_on: gp2
+      - output.turn_on: gp3
+      - output.turn_on: gp4
+      - output.turn_on: gp5
+      - output.turn_on: gp6
+      - output.turn_on: gp7
+      - rtttl.play: 'on:d=8,o=6,b=140:c'
+      - delay: 1s
+      - output.turn_off: gp0
+      - output.turn_off: gp1
+      - output.turn_off: gp2
+      - output.turn_off: gp3
+      - output.turn_off: gp4
+      - output.turn_off: gp5
+      - output.turn_off: gp6
+      - output.turn_off: gp7
+      - lambda: 'id(status_msg) = "Test done";'
+
+  # LEFT - step sequence for M2
+  - id: !extend btn_left
+    on_press:
+      - lambda: 'id(status_msg) = "M2 Step Seq";'
+      - output.turn_on: gp0
+      - delay: 100ms
+      - output.turn_off: gp0
+      - output.turn_on: gp1
+      - delay: 100ms
+      - output.turn_off: gp1
+      - output.turn_on: gp2
+      - delay: 100ms
+      - output.turn_off: gp2
+      - output.turn_on: gp3
+      - delay: 100ms
+      - output.turn_off: gp3
+      - lambda: 'id(status_msg) = "M2 Seq Done";'
+
+  # RIGHT - step sequence for M1
+  - id: !extend btn_right
+    on_press:
+      - lambda: 'id(status_msg) = "M1 Step Seq";'
+      - output.turn_on: gp4
+      - delay: 100ms
+      - output.turn_off: gp4
+      - output.turn_on: gp5
+      - delay: 100ms
+      - output.turn_off: gp5
+      - output.turn_on: gp6
+      - delay: 100ms
+      - output.turn_off: gp6
+      - output.turn_on: gp7
+      - delay: 100ms
+      - output.turn_off: gp7
+      - lambda: 'id(status_msg) = "M1 Seq Done";'
+
+# Status display
+display:
+  - id: !extend internal_display
+    lambda: |-
+      auto BLACK = Color(0, 0, 0);
+      auto WHITE = Color(255, 255, 255);
+      auto GREEN = Color(0, 255, 0);
+      auto YELLOW = Color(255, 220, 100);
+      auto CYAN = Color(100, 200, 255);
+      auto GRAY = Color(80, 80, 80);
+
+      it.fill(BLACK);
+
+      if (!id(boot_complete)) {
+        it.print(64, 50, id(large_font), GREEN, TextAlign::CENTER, "GPIO");
+        it.print(64, 70, id(pixel_font), WHITE, TextAlign::CENTER, "TEST");
+        return;
+      }
+
+      // Title
+      it.print(64, 2, id(pixel_font), GREEN, TextAlign::TOP_CENTER, "MCP23009 Test");
+      it.horizontal_line(0, 14, 128, GRAY);
+
+      // Status
+      it.printf(64, 30, id(message_font), CYAN, TextAlign::TOP_CENTER, "%s", id(status_msg).c_str());
+
+      // Instructions
+      it.horizontal_line(0, 50, 128, GRAY);
+      it.print(4, 54, id(pixel_font), YELLOW, "UP: Cycle M2 pins");
+      it.print(4, 66, id(pixel_font), YELLOW, "DOWN: Cycle M1 pins");
+      it.print(4, 78, id(pixel_font), YELLOW, "LEFT: M2 sequence");
+      it.print(4, 90, id(pixel_font), YELLOW, "RIGHT: M1 sequence");
+      it.print(4, 102, id(pixel_font), WHITE, "OK: All OFF");
+      it.print(4, 114, id(pixel_font), WHITE, "X: All ON (1s)");

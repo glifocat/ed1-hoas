@@ -1,0 +1,644 @@
+# ==============================================================================
+# ED1 Robot Demo - Interactive stepper motor demonstration
+# ==============================================================================
+#
+# Menu-driven demo showcasing robot-like movements using two stepper motors.
+# Control via physical buttons or Home Assistant.
+#
+# Movements:
+#   - Forward/Backward: Both motors same direction
+#   - Turn Left/Right: Differential steering
+#   - Spin CW/CCW: Rotate in place
+#   - Dance: Fun sequence
+#   - Square: Navigate a square path
+#
+# Controls:
+#   UP/DOWN: Navigate menu
+#   OK: Execute selected movement
+#   X: Emergency stop
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-robot
+  friendly_name: ED1 Robot Demo
+  ap_ssid: ED1-Robot-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  display_colors: !include packages/display-colors.yaml
+  display_layout: !include packages/display-layout.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  stepper: !include packages/stepper.yaml
+
+# ==============================================================================
+# Global Variables
+# ==============================================================================
+globals:
+  - id: menu_index
+    type: int
+    initial_value: '0'
+
+  - id: is_running
+    type: bool
+    initial_value: 'false'
+
+  - id: status_text
+    type: std::string
+    initial_value: '"Ready"'
+
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+
+# Movement names for display
+  - id: movement_names
+    type: std::vector<std::string>
+    initial_value: '{"Forward", "Backward", "Turn Left", "Turn Right", "Spin CW", "Spin CCW", "Dance", "Square"}'
+
+# ==============================================================================
+# Startup
+# ==============================================================================
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - delay: 500ms
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - delay: 1s
+      - lambda: 'id(boot_complete) = true;'
+      - logger.log: "Robot Demo ready - use buttons or Home Assistant to control"
+
+# ==============================================================================
+# Movement Scripts
+# ==============================================================================
+script:
+  # Execute the currently selected movement
+  - id: execute_selected_movement
+    then:
+      - lambda: |-
+          int idx = id(menu_index);
+          ESP_LOGI("robot", "Executing movement %d", idx);
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 0;'
+          then:
+            - script.execute: move_forward
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 1;'
+          then:
+            - script.execute: move_backward
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 2;'
+          then:
+            - script.execute: turn_left
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 3;'
+          then:
+            - script.execute: turn_right
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 4;'
+          then:
+            - script.execute: spin_cw
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 5;'
+          then:
+            - script.execute: spin_ccw
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 6;'
+          then:
+            - script.execute: dance_sequence
+      - if:
+          condition:
+            lambda: 'return id(menu_index) == 7;'
+          then:
+            - script.execute: square_path
+
+  # Forward: Motors opposite direction (shafts point outward)
+  - id: move_forward
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Forward...";
+      - rtttl.play: 'go:d=16,o=5,b=140:c,e'
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Backward: Motors opposite direction (reverse)
+  - id: move_backward
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Backward...";
+      - rtttl.play: 'go:d=16,o=5,b=140:e,c'
+      - script.execute:
+          id: motor1_run
+          steps: -256
+      - script.execute:
+          id: motor2_run
+          steps: 256
+      - delay: 600ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Turn Left: Both motors same direction (pivot left)
+  - id: turn_left
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Turn Left...";
+      - rtttl.play: 'turn:d=16,o=5,b=140:c'
+      - script.execute:
+          id: motor1_run
+          steps: -128
+      - script.execute:
+          id: motor2_run
+          steps: -128
+      - delay: 350ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Turn Right: Both motors same direction (pivot right)
+  - id: turn_right
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Turn Right...";
+      - rtttl.play: 'turn:d=16,o=5,b=140:e'
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Spin CW: Both motors same direction (full rotation)
+  - id: spin_cw
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Spin CW...";
+      - rtttl.play: 'spin:d=16,o=5,b=180:c,d,e,f,g'
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: 256
+      - delay: 600ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Spin CCW: Both motors same direction (full rotation other way)
+  - id: spin_ccw
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Spin CCW...";
+      - rtttl.play: 'spin:d=16,o=5,b=180:g,f,e,d,c'
+      - script.execute:
+          id: motor1_run
+          steps: -256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Done";
+      - rtttl.play: 'done:d=16,o=6,b=140:g'
+
+  # Dance sequence: Fun movement pattern
+  - id: dance_sequence
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Dancing!";
+      - rtttl.play: 'dance:d=8,o=5,b=200:c,e,g,c6,g,e,c'
+      # Wiggle right (turn right - both same)
+      - script.execute:
+          id: motor1_run
+          steps: 64
+      - script.execute:
+          id: motor2_run
+          steps: 64
+      - delay: 200ms
+      # Wiggle left (turn left - both same)
+      - script.execute:
+          id: motor1_run
+          steps: -128
+      - script.execute:
+          id: motor2_run
+          steps: -128
+      - delay: 350ms
+      # Wiggle right (turn right - both same)
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      # Wiggle left (turn left - both same)
+      - script.execute:
+          id: motor1_run
+          steps: -64
+      - script.execute:
+          id: motor2_run
+          steps: -64
+      - delay: 200ms
+      # Spin clockwise (both same)
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: 256
+      - delay: 600ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Ta-da!";
+      - rtttl.play: 'tada:d=4,o=5,b=200:c,e,g,c6'
+
+  # Square path: Navigate a square
+  - id: square_path
+    then:
+      - lambda: |-
+          id(is_running) = true;
+          id(status_text) = "Square 1/4";
+      - rtttl.play: 'start:d=16,o=5,b=140:c'
+      # Side 1 - Forward (motors opposite)
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      # Turn right 90° (both same)
+      - lambda: 'id(status_text) = "Square 2/4";'
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      # Side 2 - Forward
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      # Turn right 90°
+      - lambda: 'id(status_text) = "Square 3/4";'
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      # Side 3 - Forward
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      # Turn right 90°
+      - lambda: 'id(status_text) = "Square 4/4";'
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      # Side 4 - Forward
+      - script.execute:
+          id: motor1_run
+          steps: 256
+      - script.execute:
+          id: motor2_run
+          steps: -256
+      - delay: 600ms
+      # Final turn right to original orientation
+      - script.execute:
+          id: motor1_run
+          steps: 128
+      - script.execute:
+          id: motor2_run
+          steps: 128
+      - delay: 350ms
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "Complete!";
+      - rtttl.play: 'complete:d=8,o=5,b=200:c,e,g,c6,c6'
+
+# ==============================================================================
+# Home Assistant Entities
+# ==============================================================================
+select:
+  - platform: template
+    name: "${friendly_name} Movement"
+    id: movement_select
+    icon: mdi:robot
+    options:
+      - "Forward"
+      - "Backward"
+      - "Turn Left"
+      - "Turn Right"
+      - "Spin CW"
+      - "Spin CCW"
+      - "Dance"
+      - "Square"
+    initial_option: "Forward"
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            // Map option to index
+            std::string val = x;
+            if (val == "Forward") id(menu_index) = 0;
+            else if (val == "Backward") id(menu_index) = 1;
+            else if (val == "Turn Left") id(menu_index) = 2;
+            else if (val == "Turn Right") id(menu_index) = 3;
+            else if (val == "Spin CW") id(menu_index) = 4;
+            else if (val == "Spin CCW") id(menu_index) = 5;
+            else if (val == "Dance") id(menu_index) = 6;
+            else if (val == "Square") id(menu_index) = 7;
+            ESP_LOGI("robot", "Menu index set to %d from HA", id(menu_index));
+
+button:
+  # Run selected movement
+  - platform: template
+    name: "${friendly_name} Run"
+    id: btn_run_movement
+    icon: mdi:play
+    on_press:
+      - script.execute: execute_selected_movement
+
+  # Individual movement buttons
+  - platform: template
+    name: "${friendly_name} Forward"
+    icon: mdi:arrow-up-bold
+    on_press:
+      - lambda: 'id(menu_index) = 0;'
+      - select.set:
+          id: movement_select
+          option: "Forward"
+      - script.execute: move_forward
+
+  - platform: template
+    name: "${friendly_name} Backward"
+    icon: mdi:arrow-down-bold
+    on_press:
+      - lambda: 'id(menu_index) = 1;'
+      - select.set:
+          id: movement_select
+          option: "Backward"
+      - script.execute: move_backward
+
+  - platform: template
+    name: "${friendly_name} Turn Left"
+    icon: mdi:rotate-left
+    on_press:
+      - lambda: 'id(menu_index) = 2;'
+      - select.set:
+          id: movement_select
+          option: "Turn Left"
+      - script.execute: turn_left
+
+  - platform: template
+    name: "${friendly_name} Turn Right"
+    icon: mdi:rotate-right
+    on_press:
+      - lambda: 'id(menu_index) = 3;'
+      - select.set:
+          id: movement_select
+          option: "Turn Right"
+      - script.execute: turn_right
+
+  - platform: template
+    name: "${friendly_name} Spin CW"
+    icon: mdi:rotate-right-variant
+    on_press:
+      - lambda: 'id(menu_index) = 4;'
+      - select.set:
+          id: movement_select
+          option: "Spin CW"
+      - script.execute: spin_cw
+
+  - platform: template
+    name: "${friendly_name} Spin CCW"
+    icon: mdi:rotate-left-variant
+    on_press:
+      - lambda: 'id(menu_index) = 5;'
+      - select.set:
+          id: movement_select
+          option: "Spin CCW"
+      - script.execute: spin_ccw
+
+  - platform: template
+    name: "${friendly_name} Dance"
+    icon: mdi:dance-ballroom
+    on_press:
+      - lambda: 'id(menu_index) = 6;'
+      - select.set:
+          id: movement_select
+          option: "Dance"
+      - script.execute: dance_sequence
+
+  - platform: template
+    name: "${friendly_name} Square"
+    icon: mdi:square-outline
+    on_press:
+      - lambda: 'id(menu_index) = 7;'
+      - select.set:
+          id: movement_select
+          option: "Square"
+      - script.execute: square_path
+
+  # Stop button (extend from stepper package)
+  - platform: template
+    name: "${friendly_name} Stop"
+    id: btn_emergency_stop
+    icon: mdi:stop
+    on_press:
+      - script.execute: motors_stop
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "STOPPED";
+      - rtttl.play: 'stop:d=8,o=4,b=140:c,c,c'
+
+# ==============================================================================
+# Button Handlers
+# ==============================================================================
+binary_sensor:
+  # UP: Previous menu item
+  - id: !extend btn_up
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - lambda: |-
+          id(menu_index) = (id(menu_index) - 1 + 8) % 8;
+          // Update HA select
+          auto call = id(movement_select).make_call();
+          call.set_option(id(movement_names)[id(menu_index)]);
+          call.perform();
+
+  # DOWN: Next menu item
+  - id: !extend btn_down
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:e'
+      - lambda: |-
+          id(menu_index) = (id(menu_index) + 1) % 8;
+          // Update HA select
+          auto call = id(movement_select).make_call();
+          call.set_option(id(movement_names)[id(menu_index)]);
+          call.perform();
+
+  # OK: Execute selected movement
+  - id: !extend btn_ok
+    on_press:
+      - if:
+          condition:
+            lambda: 'return !id(is_running);'
+          then:
+            - script.execute: execute_selected_movement
+          else:
+            - rtttl.play: 'busy:d=16,o=4,b=140:c,c'
+
+  # X: Emergency stop
+  - id: !extend btn_x
+    on_press:
+      - script.execute: motors_stop
+      - lambda: |-
+          id(is_running) = false;
+          id(status_text) = "STOPPED";
+      - rtttl.play: 'stop:d=8,o=4,b=140:c,c,c'
+
+  # LEFT: Decrease speed (increase delay)
+  - id: !extend btn_left
+    on_press:
+      - script.execute: speed_down
+      - rtttl.play: 'beep:d=16,o=5,b=140:g'
+      - lambda: 'id(status_text) = "Delay: " + std::to_string(id(stepper_speed)) + "ms";'
+
+  # RIGHT: Increase speed (decrease delay)
+  - id: !extend btn_right
+    on_press:
+      - script.execute: speed_up
+      - rtttl.play: 'beep:d=16,o=5,b=140:a'
+      - lambda: 'id(status_text) = "Delay: " + std::to_string(id(stepper_speed)) + "ms";'
+
+# ==============================================================================
+# Display
+# ==============================================================================
+display:
+  - id: !extend internal_display
+    lambda: |-
+      // Colors (using BGR order for ST7735 GREENTAB)
+      auto BG = Color(0x1A, 0x1A, 0x2E);
+      auto TEXT = Color(0xE0, 0xE0, 0xE0);
+      auto MUTED = Color(0x60, 0x60, 0x70);
+      auto ACCENT = Color(0x00, 0xFF, 0x87);
+      auto HIGHLIGHT = Color(0x40, 0x40, 0x60);
+      auto WARN = Color(0x00, 0xA5, 0xFF);
+      auto GREEN = Color(0x00, 0xCC, 0x00);
+      auto RED = Color(0x00, 0x00, 0xFF);
+
+      // Background
+      it.fill(BG);
+
+      // Boot screen
+      if (!id(boot_complete)) {
+        it.print(64, 50, id(large_font), ACCENT, TextAlign::CENTER, "ROBOT");
+        it.print(64, 70, id(large_font), ACCENT, TextAlign::CENTER, "DEMO");
+        it.print(64, 100, id(pixel_font), MUTED, TextAlign::CENTER, "Initializing...");
+        return;
+      }
+
+      // Header
+      it.filled_rectangle(0, 0, 128, 18, HIGHLIGHT);
+      it.print(64, 2, id(pixel_font), ACCENT, TextAlign::TOP_CENTER, "ROBOT DEMO");
+
+      // Scroll indicators
+      if (id(menu_index) > 0) {
+        it.print(120, 2, id(pixel_font), TEXT, TextAlign::TOP_CENTER, "^");
+      }
+      if (id(menu_index) < 7) {
+        it.print(120, 76, id(pixel_font), TEXT, TextAlign::TOP_CENTER, "v");
+      }
+
+      // Menu items (show 5 items centered around selection)
+      int start_idx = id(menu_index) - 2;
+      if (start_idx < 0) start_idx = 0;
+      if (start_idx > 3) start_idx = 3;  // Max start to show items 3-7
+
+      for (int i = 0; i < 5; i++) {
+        int item_idx = start_idx + i;
+        if (item_idx >= 8) break;
+
+        int y = 22 + (i * 14);
+        bool selected = (item_idx == id(menu_index));
+
+        if (selected) {
+          // Highlight bar
+          it.filled_rectangle(4, y - 1, 120, 13, HIGHLIGHT);
+          // Selection indicator
+          it.print(8, y, id(pixel_font), ACCENT, ">");
+          it.print(18, y, id(pixel_font), ACCENT, id(movement_names)[item_idx].c_str());
+        } else {
+          it.print(18, y, id(pixel_font), MUTED, id(movement_names)[item_idx].c_str());
+        }
+      }
+
+      // Divider
+      it.horizontal_line(0, 94, 128, MUTED);
+
+      // Status area
+      if (id(is_running)) {
+        it.print(64, 98, id(pixel_font), WARN, TextAlign::TOP_CENTER, id(status_text).c_str());
+        // Running indicator
+        it.filled_circle(10, 104, 4, WARN);
+      } else {
+        it.print(64, 98, id(pixel_font), GREEN, TextAlign::TOP_CENTER, id(status_text).c_str());
+      }
+
+      // Footer hints
+      it.printf(64, 112, id(pixel_font), MUTED, TextAlign::TOP_CENTER, "LT/RT:Spd(%dms) OK:Run", id(stepper_speed));

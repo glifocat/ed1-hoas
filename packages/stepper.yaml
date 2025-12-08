@@ -51,9 +51,20 @@ globals:
     type: bool
     initial_value: 'false'
 
-# Non-blocking stepper interval - runs every 2ms (matching MicroBlocks ~1.5ms timing)
+  # Speed control: delay in milliseconds between steps (1-10, lower = faster)
+  # 28BYJ-48 needs ~1.5ms between phases, so minimum safe delay is 2ms
+  - id: stepper_speed
+    type: int
+    initial_value: '2'
+
+  # Step counter for timing
+  - id: step_delay_counter
+    type: int
+    initial_value: '0'
+
+# Non-blocking stepper interval - runs every 1ms for fine speed control
 interval:
-  - interval: 2ms
+  - interval: 1ms
     then:
       - lambda: |-
           // MCP23009 register addresses
@@ -130,6 +141,13 @@ interval:
             return;  // Nothing to do
           }
 
+          // Speed control: only step when counter reaches delay
+          id(step_delay_counter)++;
+          if (id(step_delay_counter) < id(stepper_speed)) {
+            return;  // Wait for delay
+          }
+          id(step_delay_counter) = 0;
+
           // Calculate new GPIO value
           uint8_t gpio_val = 0;
 
@@ -151,12 +169,12 @@ interval:
           uint8_t cmd[2] = {REG_GPIO, gpio_val};
           id(bus_i2c).write(MCP_ADDR, cmd, 2);
 
-          // Log first step and every 100 steps
+          // Log periodically (every 100 steps)
           static int log_counter = 0;
           static bool first_step = true;
           if (first_step || ++log_counter >= 100) {
-            ESP_LOGI("stepper", "Step: gpio=0x%02X, M1=%d, M2=%d",
-                     gpio_val, id(motor1_remaining), id(motor2_remaining));
+            ESP_LOGI("stepper", "M1=%d, M2=%d, delay=%dms",
+                     id(motor1_remaining), id(motor2_remaining), id(stepper_speed));
             log_counter = 0;
             first_step = false;
           }
@@ -242,7 +260,7 @@ script:
       steps: int
     then:
       - lambda: |-
-          // Set direction and step count
+          // Set direction and step count (normal direction)
           id(motor1_direction) = (steps > 0) ? 1 : -1;
           id(motor1_remaining) = abs(steps);
           ESP_LOGI("stepper", "Motor 1: queued %d steps, direction=%d", abs(steps), id(motor1_direction));
@@ -273,7 +291,40 @@ script:
 
           ESP_LOGI("stepper", "Motors stopped - all coils off");
 
+  # Increase speed (decrease delay)
+  - id: speed_up
+    then:
+      - lambda: |-
+          if (id(stepper_speed) > 1) {
+            id(stepper_speed)--;
+            ESP_LOGI("stepper", "Speed increased: delay=%dms", id(stepper_speed));
+          }
+
+  # Decrease speed (increase delay)
+  - id: speed_down
+    then:
+      - lambda: |-
+          if (id(stepper_speed) < 10) {
+            id(stepper_speed)++;
+            ESP_LOGI("stepper", "Speed decreased: delay=%dms", id(stepper_speed));
+          }
+
 number:
+  - platform: template
+    name: "${friendly_name} Motor Speed"
+    id: motor_speed
+    icon: mdi:speedometer
+    min_value: 1
+    max_value: 10
+    step: 1
+    initial_value: 2
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "ms"
+    on_value:
+      then:
+        - lambda: 'id(stepper_speed) = (int)x;'
+
   - platform: template
     name: "${friendly_name} Motor 1 Steps"
     id: motor1_steps
