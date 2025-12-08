@@ -58,7 +58,7 @@ binary_sensor:
     id: btn_x
     name: "${friendly_name} Button X"
     pin: GPIO14
-    threshold: 500
+    threshold: 900
     on_press:
       - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - logger.log: "Button X PRESSED"
