@@ -2,11 +2,19 @@
 # ED1 Sensors Package - Common sensors
 # ==============================================================================
 
+# Safe RSSI value for display use (handles NaN before first reading)
+globals:
+  - id: wifi_rssi
+    type: int
+    initial_value: '-100'
+
 sensor:
   - platform: wifi_signal
     name: "${friendly_name} WiFi Signal"
     id: wifi_signal_sensor
     update_interval: 10s
+    on_value:
+      - lambda: 'id(wifi_rssi) = (int)x;'
 
   - platform: uptime
     name: "${friendly_name} Uptime"

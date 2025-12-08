@@ -157,8 +157,9 @@ display:
       it.printf(value_x, bar_y, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%.0f%%", light);
 
       // Signal strength (convert RSSI to percentage: -100dBm=0%, -50dBm=100%)
+      // Uses wifi_rssi global (safe, no NaN)
       bar_y += 16;
-      int rssi = (int)id(wifi_signal_sensor).state;
+      int rssi = id(wifi_rssi);
       float signal_pct = constrain((rssi + 100) * 2, 0, 100);
       Color sig_color = (rssi > -60) ? OK : (rssi > -75) ? WARN : ERR;
       it.print(label_x, bar_y, id(pixel_font), sig_color, "RSSI");
