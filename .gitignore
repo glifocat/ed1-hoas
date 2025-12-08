@@ -57,3 +57,6 @@ venv/
 # Temporary files
 *.tmp
 *.temp
+
+# Cloned forks (esphome-devices submission)
+esphome-devices/
