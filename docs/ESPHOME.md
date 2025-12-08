@@ -395,10 +395,19 @@ binary_sensor:
 ### Sensors (packages/sensors.yaml)
 
 ```yaml
+# Safe RSSI value for display use (handles NaN before first reading)
+globals:
+  - id: wifi_rssi
+    type: int
+    initial_value: '-100'
+
 sensor:
   - platform: wifi_signal
     name: "ED1 WiFi Signal"
-    update_interval: 60s
+    id: wifi_signal_sensor
+    update_interval: 10s
+    on_value:
+      - lambda: 'id(wifi_rssi) = (int)x;'
 
   - platform: internal_temperature
     name: "ED1 CPU Temperature"
@@ -412,6 +421,8 @@ sensor:
     filters:
       - multiply: 30.3  # Scale to 0-100%
 ```
+
+**Note**: The `wifi_rssi` global provides a safe integer value for display code. Before the first WiFi signal reading (~10 seconds after boot), the sensor returns NaN which can cause display issues when cast to int. The global defaults to -100 dBm and updates on each reading.
 
 ### Text Input (packages/led-matrix.yaml)
 

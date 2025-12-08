@@ -43,10 +43,17 @@ SDA: GPIO21
 SCL: GPIO22
 ```
 
+**Rev 2.3:**
 | Device | Address | Function |
 |--------|---------|----------|
 | MXC6655XA | 0x15 | Accelerometer |
 | MCP23009 | 0x20 | I/O Expander (stepper motors) |
+
+**Rev 1.0:**
+| Device | Address | Function |
+|--------|---------|----------|
+| LIS3DH | 0x19 | Accelerometer |
+| MCP23017 | 0x20 | I/O Expander (16 GPIO pins) |
 
 ### MCP23009 GPIO Mapping (Stepper Motors)
 ```
