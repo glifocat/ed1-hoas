@@ -41,6 +41,10 @@ esphome:
       - delay: 3s
       - lambda: 'id(boot_complete) = true;'
 
+# Force include components to fix linker errors
+number:
+script:
+
 globals:
   - id: boot_complete
     type: bool

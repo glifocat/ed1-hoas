@@ -1,69 +1,60 @@
 ---
+layout: page
 title: Citilab ED1
-date-published: 2025-12-08
-type: misc
-standard: eu
-board: esp32
-project-url: https://github.com/glifocat/ed1-hoas
-made-for-esphome: false
-difficulty: 1
+description: Educational ESP32 board with 1.44" display, touch buttons, sensors, and expansion ports for stepper motors and LED matrix.
+head:
+  - - meta
+    - name: keywords
+      content: esp32, display, st7735, touch, education, citilab, ed1, stepper, led matrix
 ---
 
-The ED1 is an ESP32-based educational development board designed by
-[Citilab Edutec](https://citilab.eu) in Barcelona, Spain.
-It integrates multiple peripherals for learning embedded systems and IoT development.
+# Citilab ED1
 
-![Citilab ED1 Board](ed1-board.png "Citilab ED1 Educational Board")
+The **ED1** is an educational development board based on the **ESP32**, created by [Citilab Edutec](https://citilab.eu). It is designed to teach embedded systems, programming, and IoT.
 
-## Built-in Features
+It features a built-in 1.44" TFT display, capacitive touch buttons, sensors (light, temperature), and expansion ports for controlling stepper motors (28BYJ-48) and WS2812 LED matrices.
 
-- **1.44" TFT Display** (ST7735, 128x128 pixels)
-- **6 Capacitive Touch Buttons** (Up, Down, Left, Right, OK, X)
-- **Light Sensor** (ALS-PT19)
-- **Buzzer** with amplifier (PAM8301)
-- **IR Receiver** (38kHz, TSOP75438TT)
-- **Accelerometer** (MXC6655XA on Rev 2.3, LIS3DH on Rev 1.0)
-- **Battery Support** (16340/CR123A Li-Ion)
-- **USB-C** for power and programming
+<div align="center">
+  <img src="ed1-board.jpg" alt="Citilab ED1 Board" width="50%">
+</div>
 
-## Expansion Support
+## Features
 
-The board includes connectors for external peripherals:
+*   **MCU:** ESP32-SIP (Dual-core 240MHz, WiFi, BLE)
+*   **Display:** 1.44" TFT LCD (ST7735, 128x128 pixels)
+*   **Input:** 6 Capacitive Touch Buttons (Up, Down, Left, Right, OK, X)
+*   **Audio:** Passive Buzzer with amplifier (PAM8301)
+*   **Sensors:**
+    *   Light Sensor (ALS-PT19-315C)
+    *   IR Receiver (38kHz)
+    *   Internal Temperature & WiFi Signal
+*   **Power:** USB-C (5V) and Li-Ion Battery (16340) charger
+*   **Expansion:**
+    *   **Stepper Motors:** I2C Expander (MCP23009) + ULN2004A drivers for 2x 28BYJ-48 motors.
+    *   **LED Matrix:** Dedicated port for WS2812 32x8 matrix.
+    *   **I2C/UART:** Grove connector and pin headers.
 
-- **LED Matrix** - GPIO12 output for WS2812 strips (e.g., 32x8 = 256 LEDs)
-- **Stepper Motors** - 2x 28BYJ-48 via MCP23009 I/O expander and ULN2004A drivers
+## Configuration
 
-## GPIO Pinout
+The following configuration enables the display, buttons, buzzer, and basic sensors.
 
-| GPIO | Function |
-|------|----------|
-| 2 | Touch Left |
-| 4 | Touch Up |
-| 5 | TFT CS |
-| 9 | TFT DC |
-| 10 | TFT Reset |
-| 12 | D1 Expansion (WS2812) |
-| 13 | Touch Down |
-| 14 | Touch X |
-| 15 | Touch OK |
-| 18 | SPI CLK |
-| 19 | SPI MISO |
-| 21 | I2C SDA |
-| 22 | I2C SCL |
-| 23 | SPI MOSI |
-| 26 | Buzzer |
-| 27 | Touch Right |
-| 34 | Light Sensor (ADC) |
-| 35 | IR Receiver |
-
-## Basic Configuration
-
-This minimal configuration enables the TFT display, touch buttons, buzzer, and sensors:
+> **Note:** For advanced features like stepper motors (which use direct I2C register manipulation via MCP23009) or complex display layouts, consider using external packages or custom components as seen in the [project repository](https://github.com/glifocat/ed1-hoas).
 
 ```yaml
-esphome:
+# ==============================================================================
+# Citilab ED1 - Minimal ESPHome Configuration
+# ==============================================================================
+substitutions:
   name: ed1-board
   friendly_name: ED1 Board
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  project:
+    name: citilab.ed1
+    version: "1.0"
 
 esp32:
   board: esp32dev
@@ -71,25 +62,25 @@ esp32:
     type: arduino
 
 logger:
+  level: INFO
 
 api:
-  encryption:
-    key: !secret api_encryption_key
 
 ota:
   - platform: esphome
-    password: !secret ota_password
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  id: wifi_component
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "ED1-Fallback"
-    password: !secret fallback_ap_password
 
 captive_portal:
 
-# Hardware buses
+# ==============================================================================
+# Hardware Buses
+# ==============================================================================
+
 spi:
   clk_pin: GPIO18
   mosi_pin: GPIO23
@@ -99,8 +90,27 @@ i2c:
   sda: GPIO21
   scl: GPIO22
   scan: true
+  id: bus_i2c
 
+# ==============================================================================
+# Fonts (using Google Fonts - no external files needed)
+# ==============================================================================
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_large
+    size: 20
+  - file: "gfonts://Roboto"
+    id: font_medium
+    size: 14
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 10
+
+# ==============================================================================
 # TFT Display (ST7735 128x128)
+# ==============================================================================
+
 display:
   - platform: st7735
     id: internal_display
@@ -115,54 +125,45 @@ display:
     row_start: 3
     update_interval: 1s
     lambda: |-
-      it.fill(Color(0, 0, 0));
-      it.print(64, 40, id(font_large), Color(0, 255, 0), TextAlign::CENTER, "ED1");
-      it.print(64, 70, id(font_small), Color(255, 255, 255), TextAlign::CENTER, id(wifi_ip).state.c_str());
+      // Colors
+      auto BLACK = Color(0, 0, 0);
+      auto WHITE = Color(255, 255, 255);
+      auto GREEN = Color(0, 255, 0);
+      auto GRAY = Color(100, 100, 100);
 
-font:
-  - file: "gfonts://Roboto"
-    id: font_large
-    size: 24
-  - file: "gfonts://Roboto"
-    id: font_small
-    size: 12
+      it.fill(BLACK);
 
-# Touch Buttons
-esp32_touch:
-  setup_mode: false
+      // Title
+      it.print(64, 20, id(font_large), GREEN, TextAlign::CENTER, "ED1");
 
-binary_sensor:
-  - platform: esp32_touch
-    name: "Button Up"
-    pin: GPIO4
-    threshold: 500
+      // IP Address (if connected)
+      if (id(wifi_component).is_connected()) {
+         it.print(64, 50, id(font_small), WHITE, TextAlign::CENTER, id(wifi_ip).state.c_str());
+      } else {
+         it.print(64, 50, id(font_small), GRAY, TextAlign::CENTER, "Connecting...");
+      }
 
-  - platform: esp32_touch
-    name: "Button Down"
-    pin: GPIO13
-    threshold: 500
+      // Separator
+      it.horizontal_line(10, 65, 108, GRAY);
 
-  - platform: esp32_touch
-    name: "Button Left"
-    pin: GPIO2
-    threshold: 500
+      // Sensor readings
+      if (!std::isnan(id(cpu_temp).state)) {
+        it.printf(64, 75, id(font_small), WHITE, TextAlign::CENTER, "CPU: %.1fC", id(cpu_temp).state);
+      }
 
-  - platform: esp32_touch
-    name: "Button Right"
-    pin: GPIO27
-    threshold: 500
+      if (!std::isnan(id(light_sensor).state)) {
+        it.printf(64, 90, id(font_small), WHITE, TextAlign::CENTER, "Light: %.0f%%", id(light_sensor).state);
+      }
 
-  - platform: esp32_touch
-    name: "Button OK"
-    pin: GPIO15
-    threshold: 500
+      // WiFi signal
+      if (!std::isnan(id(wifi_signal_sensor).state)) {
+        it.printf(64, 105, id(font_small), GRAY, TextAlign::CENTER, "WiFi: %.0fdBm", id(wifi_signal_sensor).state);
+      }
 
-  - platform: esp32_touch
-    name: "Button X"
-    pin: GPIO14
-    threshold: 900
-
+# ==============================================================================
 # Buzzer
+# ==============================================================================
+
 output:
   - platform: ledc
     pin: GPIO26
@@ -170,19 +171,95 @@ output:
 
 rtttl:
   output: buzzer_output
+  id: buzzer
 
+switch:
+  - platform: template
+    name: "Buzzer Test"
+    id: buzzer_switch
+    turn_on_action:
+      - rtttl.play: "beep:d=4,o=5,b=100:c"
+    turn_off_action:
+      - rtttl.stop
+
+# ==============================================================================
+# Touch Buttons
+# ==============================================================================
+
+esp32_touch:
+  setup_mode: false
+
+binary_sensor:
+  - platform: esp32_touch
+    name: "Button Up"
+    id: btn_up
+    pin: GPIO4
+    threshold: 500
+    on_press:
+      - rtttl.play: "beep:d=16,o=5,b=140:c"
+
+  - platform: esp32_touch
+    name: "Button Down"
+    id: btn_down
+    pin: GPIO13
+    threshold: 500
+    on_press:
+      - rtttl.play: "beep:d=16,o=5,b=140:d"
+
+  - platform: esp32_touch
+    name: "Button Left"
+    id: btn_left
+    pin: GPIO2
+    threshold: 500
+    on_press:
+      - rtttl.play: "beep:d=16,o=5,b=140:e"
+
+  - platform: esp32_touch
+    name: "Button Right"
+    id: btn_right
+    pin: GPIO27
+    threshold: 500
+    on_press:
+      - rtttl.play: "beep:d=16,o=5,b=140:f"
+
+  - platform: esp32_touch
+    name: "Button OK"
+    id: btn_ok
+    pin: GPIO15
+    threshold: 500
+    on_press:
+      - rtttl.play: "ok:d=8,o=5,b=160:c,e,g"
+
+  - platform: esp32_touch
+    name: "Button X"
+    id: btn_x
+    pin: GPIO14
+    threshold: 900
+    on_press:
+      - rtttl.play: "alert:d=8,o=5,b=180:c,c,c"
+
+# ==============================================================================
 # Sensors
+# ==============================================================================
+
 sensor:
   - platform: wifi_signal
     name: "WiFi Signal"
+    id: wifi_signal_sensor
     update_interval: 60s
+
+  - platform: uptime
+    name: "Uptime"
+    id: uptime_sensor
 
   - platform: internal_temperature
     name: "CPU Temperature"
+    id: cpu_temp
 
   - platform: adc
     pin: GPIO34
     name: "Light Level"
+    id: light_sensor
     attenuation: 12db
     update_interval: 5s
     unit_of_measurement: "%"
@@ -194,38 +271,11 @@ text_sensor:
     ip_address:
       name: "IP Address"
       id: wifi_ip
+    ssid:
+      name: "WiFi SSID"
 ```
 
-## LED Matrix Configuration (Optional)
+## References
 
-If you connect an external WS2812 LED matrix to GPIO12:
-
-```yaml
-light:
-  - platform: esp32_rmt_led_strip
-    rgb_order: GRB
-    chipset: WS2812
-    pin: GPIO12
-    num_leds: 256
-    name: "LED Matrix"
-    id: led_matrix
-    default_transition_length: 0s
-    color_correct: [40%, 40%, 40%]
-```
-
-## Hardware Revisions
-
-| Component | Rev 1.0 | Rev 2.3 |
-|-----------|---------|---------|
-| Accelerometer | LIS3DH (0x19) | MXC6655XA (0x15) |
-| I/O Expander | MCP23017 (0x20) | MCP23009 (0x20) |
-
-Check I2C scan on boot to identify your revision.
-
-## Links
-
-- [Full ESPHome Configuration](https://github.com/glifocat/ed1-hoas) -
-  Modular packages with display themes, MQTT, stepper motors
-- [Citilab](https://citilab.eu) - Board manufacturer
-- [MicroBlocks](https://microblocks.fun/) - Official programming environment
-- [Hardware Documentation](https://github.com/glifocat/ed1-hoas/blob/main/docs/HARDWARE.md)
+*   [Official Citilab ED1 Documentation](https://citilab.eu)
+*   [ED1 Home Assistant Project (GitHub)](https://github.com/glifocat/ed1-hoas)
