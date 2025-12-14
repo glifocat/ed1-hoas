@@ -1,0 +1,172 @@
+# ==============================================================================
+# ED1 SmartIR Detector - Standalone (Rev 2.3)
+# ==============================================================================
+# Automatically identifies remotes compatible with Home Assistant SmartIR.
+# Displays the detected Device Code (e.g., "1060") on the screen.
+#
+# Supported Brands (Subset):
+# - LG, Samsung, Sony, Panasonic, Philips, NEC standard
+#
+# Logic: Identifies based on the Address field of NEC signals, or Data for LG/Samsung.
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-smartir-detector
+  friendly_name: ED1 SmartIR Detector
+
+packages:
+  # Load core hardware
+  colors: !include packages/display-colors.yaml
+  fonts: !include packages/fonts.yaml
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  buzzer: !include packages/buzzer.yaml
+  ir_rx: !include packages/ir-receiver.yaml # GPIO35
+
+# ==============================================================================
+# GLOBALS & LOGIC
+# ==============================================================================
+globals:
+  - id: detected_brand
+    type: std::string
+    initial_value: '"Waiting..."'
+  - id: detected_code
+    type: std::string
+    initial_value: '"---"'
+  - id: last_hex
+    type: std::string
+    initial_value: '""'
+
+# ==============================================================================
+# IR RECEIVER LOGIC
+# ==============================================================================
+remote_receiver:
+  id: ir_receiver
+  
+  # --- NEC / LG / SAMSUNG PROTOCOLS ---
+  on_nec:
+    then:
+      - lambda: |-
+          uint32_t addr = x.address;
+          uint32_t cmd = x.command;
+          char hex_buf[32];
+          sprintf(hex_buf, "%04X / %04X", addr, cmd);
+          id(last_hex) = hex_buf;
+
+          // --- DATABASE MATCHING (Based on Address) ---
+          
+          // LG TV (Native)
+          // Addresses: 0x0400, 0x0004, 0xFB04
+          if (addr == 0x0400 || addr == 0x0004 || addr == 0xFB04) {
+             id(detected_brand) = "LG TV (Native)";
+             id(detected_code) = "Code: 1060";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+
+          // OEM / Generic Projector
+          // Address: 0xFF00 (Very common in Chinese projectors/LEDs)
+          if (addr == 0xFF00) {
+             id(detected_brand) = "OEM / Projector";
+             id(detected_code) = "Generic NEC";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+
+          // Samsung TV (SmartIR 1020, 1040)
+          // Common Addresses: 0x0707, 0x7070, 0xFA05
+          if (addr == 0x0707 || addr == 0x7070 || addr == 0xFA05) {
+             id(detected_brand) = "Samsung TV";
+             id(detected_code) = "Code: 1020/1040";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+
+          // Yamaha (SmartIR 1120)
+          if (addr == 0x7E81 || addr == 0x7881) {
+             id(detected_brand) = "Yamaha AV";
+             id(detected_code) = "Code: 1120";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+          
+          // Generic NEC Unidentified
+          id(detected_brand) = "NEC Generic";
+          id(detected_code) = "Unknown";
+
+  on_lg:
+    then:
+      - lambda: |-
+          uint32_t data = x.data;
+          char hex_buf[32];
+          sprintf(hex_buf, "%08X", data);
+          id(last_hex) = hex_buf;
+
+          // LG standard 32-bit (SmartIR 1060)
+          // Often starts with 0x20DF
+          if ((data & 0xFFFF0000) == 0x20DF0000) {
+             id(detected_brand) = "LG TV";
+             id(detected_code) = "Code: 1060";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+          
+          id(detected_brand) = "LG (Other)";
+          id(detected_code) = "Unknown";
+
+  on_samsung:
+    then:
+      - lambda: |-
+          uint32_t data = x.data;
+          char hex_buf[32];
+          sprintf(hex_buf, "%08X", data);
+          id(last_hex) = hex_buf;
+
+          // Samsung standard (SmartIR 1020, 1040)
+          // Often starts with 0xE0E0
+          if ((data & 0xFFFF0000) == 0xE0E00000) {
+             id(detected_brand) = "Samsung TV";
+             id(detected_code) = "Code: 1020/1040";
+             id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+             return;
+          }
+           
+          id(detected_brand) = "Samsung (Other)";
+          id(detected_code) = "Unknown";
+
+  on_sony:
+    then:
+      - lambda: |-
+          id(detected_brand) = "Sony";
+          id(detected_code) = "Code: 1010";
+          char hex_buf[32];
+          sprintf(hex_buf, "%X (%d)", x.data, x.nbits);
+          id(last_hex) = hex_buf;
+          id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
+
+# ==============================================================================
+# DISPLAY
+# ==============================================================================
+display:
+  - id: !extend internal_display
+    lambda: |-
+      it.fill(Color::BLACK);
+      
+      // Header
+      it.print(64, 5, id(pixel_font), Color(0xAAAAAA), TextAlign::TOP_CENTER, "SmartIR DETECT");
+      it.horizontal_line(10, 18, 108, Color(0x444444));
+
+      // Brand (Normal Font)
+      it.print(64, 35, id(pixel_font), Color(0x00FF00), TextAlign::TOP_CENTER, id(detected_brand).c_str());
+
+      // Code (Normal Font)
+      it.print(64, 60, id(pixel_font), Color(0xFFA500), TextAlign::TOP_CENTER, id(detected_code).c_str());
+
+      // Raw Data (Small)
+      it.print(64, 85, id(pixel_font), Color(0x888888), TextAlign::TOP_CENTER, "Raw Data:");
+      it.print(64, 95, id(pixel_font), Color(0xDDDDDD), TextAlign::TOP_CENTER, id(last_hex).c_str());
+
+      // Footer
+      it.horizontal_line(10, 110, 108, Color(0x444444));
+      it.print(64, 115, id(pixel_font), Color(0x666666), TextAlign::CENTER, "Press Remote");

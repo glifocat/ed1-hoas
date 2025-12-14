@@ -273,10 +273,17 @@ This documentation primarily covers **ED1 Rev 2.3**, but packages have been test
 | Accelerometer | LIS3DH (0x19) | MXC6655XA (0x15) |
 | I/O Expander | MCP23017 (0x20) | MCP23009 (0x20) |
 | Stepper Driver ICs | ULN2004A | ULN2004A |
+| IR Emitter | GPIO32 (Untested) | Not available |
+| IR Receiver | GPIO35 (Issues reported) | GPIO35 (Tested OK) |
 
 ### Compatibility Notes
 
-- **Core packages** (display, buttons, sensors, buzzer, etc.) work on both revisions
+- **Core packages** (display, buttons, sensors, buzzer, etc.) work on both revisions.
+- **Stepper package** (`packages/stepper.yaml`) is designed for Rev 2.3's MCP23009.
+- **IR Features**:
+  - **Rev 2.3**: Receiver works reliably. No emitter hardware.
+  - **Rev 1.0**: Has an emitter on GPIO32, but it has not been verified in this project. The receiver on GPIO35 has shown stability issues in some units.
+
 - **Stepper package** (`packages/stepper.yaml`) is designed for Rev 2.3's MCP23009
   - Rev 1.0 uses MCP23017 which has different register addresses
   - The MCP23017 has 16 GPIO pins vs MCP23009's 8 pins

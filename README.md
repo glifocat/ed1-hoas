@@ -60,6 +60,7 @@ ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP3
    - `ed1-message.sample.yaml` - Message display with chat log (recommended)
    - `ed1-mqtt.sample.yaml` - Dashboard with MQTT messaging
    - `ed1-status.sample.yaml` - Status display (WiFi, sensors, uptime, optional IR)
+   - `ed1-smartir-detector.yaml` - **Tool:** Identifies IR remote codes for [SmartIR](https://github.com/smartHomeHub/SmartIR) integration.
 
    Copy your chosen sample, `secrets.yaml`, the `fonts/` folder, and the `packages/` folder to your ESPHome config directory.
 
@@ -81,6 +82,7 @@ ed1-hoas/
 ├── ed1-message.sample.yaml        # Message display with chat log (recommended)
 ├── ed1-mqtt.sample.yaml           # Dashboard with MQTT messaging
 ├── ed1-status.sample.yaml         # Status display (WiFi, sensors, uptime, optional IR)
+├── ed1-smartir-detector.yaml      # IR analysis tool (SmartIR compatible)
 ├── secrets.sample.yaml            # Template for secrets
 ├── secrets.yaml                   # Your credentials (git-ignored)
 ├── packages/                      # Modular ESPHome components

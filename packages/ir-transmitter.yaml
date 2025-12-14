@@ -1,0 +1,26 @@
+# ==============================================================================
+# ED1 IR Transmitter Package - Infrared LED emitter
+# ==============================================================================
+# WARNING: This feature is EXPERIMENTAL and UNTESTED.
+#
+# Hardware: Rev 1.0 boards only (GPIO32)
+# Status: The presence of the IR LED on GPIO32 is documented but has not been
+#         verified in practice. Use with caution.
+#
+# Use with remote_transmitter actions to send IR codes.
+#
+# Example usage in your config:
+#   button:
+#     - platform: template
+#       name: "TV Power"
+#       on_press:
+#         - remote_transmitter.transmit_nec:
+#             transmitter_id: ir_transmitter
+#             address: 0x4004
+#             command: 0x08F7
+# ==============================================================================
+
+remote_transmitter:
+  id: ir_transmitter
+  pin: GPIO32
+  carrier_duty_percent: 50%

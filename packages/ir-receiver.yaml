@@ -3,15 +3,11 @@
 # ==============================================================================
 
 remote_receiver:
+  id: ir_receiver
   pin:
     number: GPIO35
     inverted: true
   dump: all
-  on_nec:
-    then:
-      - lambda: |-
-          ESP_LOGI("IR", "NEC: address=0x%04X, command=0x%04X", x.address, x.command);
-  on_samsung:
-    then:
-      - lambda: |-
-          ESP_LOGI("IR", "Samsung: data=0x%08X", x.data);
+  tolerance: 25%
+  idle: 10ms
+  buffer_size: 10000b
