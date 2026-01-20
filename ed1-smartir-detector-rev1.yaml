@@ -1,5 +1,5 @@
 # ==============================================================================
-# ED1 SmartIR Detector - Standalone (Rev 2.3)
+# ED1 SmartIR Detector - Standalone (Rev 1.0)
 # ==============================================================================
 # Automatically identifies remotes compatible with Home Assistant SmartIR.
 # Displays the detected Device Code (e.g., "1060") on the screen.
@@ -11,10 +11,9 @@
 # ==============================================================================
 
 substitutions:
-  device_name: ed1-smartir-detector
-  friendly_name: ED1 SmartIR Detector
-  # For Rev 1.0 boards, uncomment the next line:
-  # ir_receiver_pin: "GPIO33"
+  device_name: ed1-smartir-detector-rev1
+  friendly_name: ED1 SmartIR Detector Rev1
+  ir_receiver_pin: "GPIO33"
 
 packages:
   # Load core hardware
@@ -24,7 +23,7 @@ packages:
   hardware: !include packages/hardware.yaml
   display: !include packages/display.yaml
   buzzer: !include packages/buzzer.yaml
-  ir_rx: !include packages/ir-receiver.yaml # GPIO35
+  ir_rx: !include packages/ir-receiver.yaml # GPIO33
 
 # ==============================================================================
 # GLOBALS & LOGIC
