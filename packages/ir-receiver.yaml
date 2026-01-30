@@ -1,11 +1,12 @@
 # ==============================================================================
 # ED1 IR Receiver Package - 38kHz infrared remote control
 # ==============================================================================
+# Pin defaults to GPIO35 (Rev 2.3); override ir_receiver_pin substitution for Rev 1.0 (GPIO33)
 
 remote_receiver:
   id: ir_receiver
   pin:
-    number: GPIO35
+    number: ${ir_receiver_pin}
     inverted: true
   dump: all
   tolerance: 25%

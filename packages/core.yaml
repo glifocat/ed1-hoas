@@ -17,6 +17,8 @@
 # Default substitution - can be overridden in device config
 substitutions:
   wifi_power_save: "LIGHT"
+  # IR receiver pin - defaults for Rev 2.3; override for Rev 1.0
+  ir_receiver_pin: "GPIO35"
 
 esphome:
   name: ${device_name}
