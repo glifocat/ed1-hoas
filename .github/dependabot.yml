@@ -1,0 +1,40 @@
+# ==============================================================================
+# Dependabot Configuration - Automated dependency updates
+# ==============================================================================
+# This configuration enables automatic updates for GitHub Actions used in
+# workflows. ESPHome version tracking is handled by Renovate bot via regex.
+# ==============================================================================
+
+version: 2
+updates:
+  # GitHub Actions - Weekly updates for workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "glifocat"
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python dependencies (for scripts/ir_shazam.py)
+  # Disabled by default - enable if requirements.txt is added
+  # - package-ecosystem: "pip"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"

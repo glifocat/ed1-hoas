@@ -1,0 +1,176 @@
+# ==============================================================================
+# Security Scanning Workflow
+# ==============================================================================
+# This workflow performs security scans:
+# - Secret detection (TruffleHog)
+# - YAML linting and validation
+# - CodeQL analysis for Python scripts
+# - Dependency vulnerability scanning
+# ==============================================================================
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 8:00 UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Secret Scanning - Detect leaked credentials
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better detection
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          extra_args: --only-verified --fail
+
+  # ---------------------------------------------------------------------------
+  # YAML Security Lint
+  # ---------------------------------------------------------------------------
+  yaml-lint:
+    name: YAML Security Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 200
+              document-start: disable
+              truthy: disable
+              comments:
+                min-spaces-from-content: 1
+              braces:
+                min-spaces-inside: 0
+                max-spaces-inside: 1
+              brackets:
+                min-spaces-inside: 0
+                max-spaces-inside: 0
+              # Security-focused rules
+              comments-indentation: enable
+              empty-lines:
+                max: 2
+                max-start: 0
+                max-end: 1
+
+      - name: Check for sensitive patterns
+        run: |
+          echo "Checking for potentially sensitive patterns..."
+
+          # Check for hardcoded passwords (excluding sample files)
+          if grep -r --include="*.yaml" --exclude="*.sample.yaml" \
+            -E '(password|secret|key|token|api_key)\s*:\s*["'"'"'][^$"'"'"']+' \
+            packages/ . 2>/dev/null | grep -v '!secret'; then
+            echo "::warning::Potential hardcoded secrets found (excluding !secret references)"
+          fi
+
+          # Check sample files don't contain real secrets
+          if grep -r --include="*.sample.yaml" \
+            -E '(password|secret)\s*:\s*["'"'"'](?!your_|test_|example|sample)' \
+            . ; then
+            echo "::error::Sample files should use placeholder values"
+            exit 1
+          fi
+
+          echo "Pattern check complete"
+
+  # ---------------------------------------------------------------------------
+  # CodeQL Analysis for Python scripts
+  # ---------------------------------------------------------------------------
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+
+  # ---------------------------------------------------------------------------
+  # Python Dependency Security Check
+  # ---------------------------------------------------------------------------
+  python-security:
+    name: Python Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install safety and bandit
+        run: pip install safety bandit
+
+      - name: Check Python scripts with Bandit
+        run: |
+          if [ -d "scripts" ]; then
+            bandit -r scripts/ -ll --skip B101,B601 || true
+          fi
+
+      - name: Check for known vulnerabilities in pip
+        run: |
+          pip install esphome 2>/dev/null || true
+          safety check --full-report || true
+
+  # ---------------------------------------------------------------------------
+  # Summary Report
+  # ---------------------------------------------------------------------------
+  report:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [secret-scan, yaml-lint, codeql, python-security]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Detection | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| YAML Lint | ${{ needs.yaml-lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Security | ${{ needs.python-security.result }} |" >> $GITHUB_STEP_SUMMARY
