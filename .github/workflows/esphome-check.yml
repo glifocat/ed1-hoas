@@ -1,0 +1,259 @@
+# ==============================================================================
+# ESPHome Configuration Validation & Version Check
+# ==============================================================================
+# This workflow:
+# - Validates ESPHome YAML configurations on push/PR
+# - Compiles core configurations to catch C++ and component errors
+# - Checks for new ESPHome versions weekly
+# - Creates an issue when a new major/minor version is detected
+# ==============================================================================
+
+name: ESPHome Check
+
+on:
+  push:
+    paths:
+      - "**.yaml"
+      - "packages/**"
+    branches: [main]
+  pull_request:
+    paths:
+      - "**.yaml"
+      - "packages/**"
+  schedule:
+    # Every Monday at 6:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+env:
+  ESPHOME_VERSION: "2025.2.0"
+  ESPHOME_VERSION_FILE: ".esphome-version"
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Validate ESPHome YAML configurations
+  # ---------------------------------------------------------------------------
+  validate-config:
+    name: Validate ESPHome Configs
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ESPHome
+        run: pip install esphome==${{ env.ESPHOME_VERSION }}
+
+      - name: Create secrets file for validation
+        # NOTE: Keep in sync with the identical block in the compile-configs job
+        run: |
+          cat > secrets.yaml << 'EOF'
+          wifi_ssid: "test-network"
+          wifi_password: "test-password"
+          fallback_ap_password: "test-fallback"
+          api_encryption_key_full: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+          ota_password: "test-ota-password"
+          mqtt_broker: "127.0.0.1"
+          mqtt_user: "test-user"
+          mqtt_password: "test-password"
+          EOF
+
+      - name: Validate sample configurations
+        run: |
+          for config in ed1-status.sample.yaml ed1-message.sample.yaml ed1-mqtt.sample.yaml; do
+            if [ -f "$config" ]; then
+              echo "Validating $config..."
+              esphome config "$config" 2>&1 || { echo "::error::Validation failed for $config"; exit 1; }
+            fi
+          done
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 150
+              document-start: disable
+              truthy: disable
+              comments: disable
+
+  # ---------------------------------------------------------------------------
+  # Compile ESPHome configurations (catches C++ and component errors)
+  # ---------------------------------------------------------------------------
+  compile-configs:
+    name: Compile ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    needs: validate-config
+    if: github.event_name != 'schedule'
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - ed1-message.sample.yaml
+          - ed1-status.sample.yaml
+          - ed1-mqtt.sample.yaml
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ESPHome
+        run: pip install esphome==${{ env.ESPHOME_VERSION }}
+
+      - name: Create secrets file
+        # NOTE: Keep in sync with the identical block in the validate-config job
+        run: |
+          cat > secrets.yaml << 'EOF'
+          wifi_ssid: "test-network"
+          wifi_password: "test-password"
+          fallback_ap_password: "test-fallback"
+          api_encryption_key_full: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+          ota_password: "test-ota-password"
+          mqtt_broker: "127.0.0.1"
+          mqtt_user: "test-user"
+          mqtt_password: "test-password"
+          EOF
+
+      - name: Compile ${{ matrix.config }}
+        run: esphome compile ${{ matrix.config }}
+
+  # ---------------------------------------------------------------------------
+  # Check for new ESPHome versions
+  # ---------------------------------------------------------------------------
+  version-check:
+    name: Check ESPHome Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    outputs:
+      new-version: ${{ steps.check.outputs.new-version }}
+      latest-version: ${{ steps.check.outputs.latest }}
+      current-version: ${{ steps.check.outputs.current }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest ESPHome version from PyPI
+        id: pypi
+        run: |
+          LATEST=$(curl -s https://pypi.org/pypi/esphome/json | jq -r '.info.version')
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest ESPHome version: $LATEST"
+
+      - name: Get current version from README
+        id: readme
+        run: |
+          # Extract version from badge: ESPHome-2025.x
+          CURRENT=$(grep -oP 'ESPHome-\K[0-9]+(?=\.x)' README.md | head -1 || echo "unknown")
+          echo "major=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current major version in README: $CURRENT"
+
+      - name: Compare versions
+        id: check
+        run: |
+          LATEST="${{ steps.pypi.outputs.version }}"
+          CURRENT="${{ steps.readme.outputs.major }}"
+
+          # Extract major from latest (e.g., 2025.2.0 -> 2025)
+          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
+
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+          if [ "$LATEST_MAJOR" != "$CURRENT" ]; then
+            echo "new-version=true" >> $GITHUB_OUTPUT
+            echo "::warning::New ESPHome major version available: $LATEST (current: $CURRENT.x)"
+          else
+            echo "new-version=false" >> $GITHUB_OUTPUT
+            echo "ESPHome is up to date: $CURRENT.x series"
+          fi
+
+      - name: Save version to file
+        run: |
+          echo "${{ steps.pypi.outputs.version }}" > ${{ env.ESPHOME_VERSION_FILE }}
+
+      - name: Upload version file
+        uses: actions/upload-artifact@v4
+        with:
+          name: esphome-version
+          path: ${{ env.ESPHOME_VERSION_FILE }}
+
+  # ---------------------------------------------------------------------------
+  # Create issue for new version notification
+  # ---------------------------------------------------------------------------
+  notify-version:
+    name: Notify New Version
+    runs-on: ubuntu-latest
+    needs: version-check
+    if: needs.version-check.outputs.new-version == 'true'
+    permissions:
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for existing issue
+        id: existing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'esphome-update'
+            });
+            return issues.data.length > 0;
+
+      - name: Create issue for new ESPHome version
+        if: steps.existing.outputs.result == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latest = '${{ needs.version-check.outputs.latest-version }}';
+            const current = '${{ needs.version-check.outputs.current-version }}';
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 ESPHome ${latest} disponible (actual: ${current}.x)`,
+              body: `## Nueva versión de ESPHome disponible
+
+            **Versión detectada:** \`${latest}\`
+            **Versión actual en README:** \`${current}.x\`
+
+            ### Acciones recomendadas
+            - [ ] Revisar [notas de la versión](https://github.com/esphome/esphome/releases/tag/${latest})
+            - [ ] Actualizar el badge en README.md
+            - [ ] Probar las configuraciones con la nueva versión
+            - [ ] Actualizar documentación si hay cambios en la API
+
+            ### Referencias
+            - [ESPHome Changelog](https://github.com/esphome/esphome/releases)
+            - [ESPHome Documentation](https://esphome.io/)
+
+            ---
+            *Este issue fue creado automáticamente por el workflow ESPHome Check.*
+            `,
+              labels: ['esphome-update', 'dependencies']
+            });

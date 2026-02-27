@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![ESPHome](https://img.shields.io/badge/ESPHome-2025.x-brightgreen.svg)](https://esphome.io)
+[![CI](https://github.com/glifocat/ed1-hoas/actions/workflows/esphome-check.yml/badge.svg)](https://github.com/glifocat/ed1-hoas/actions/workflows/esphome-check.yml)
 [![ESP32](https://img.shields.io/badge/ESP32-supported-blue.svg)](https://www.espressif.com/en/products/socs/esp32)
 
 ESPHome configuration for integrating the [ED1 Citilab](https://citilab.eu) ESP32 educational board with Home Assistant.
