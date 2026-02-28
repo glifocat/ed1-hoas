@@ -1,0 +1,230 @@
+---
+title: "SmartIR integration"
+description: "Control IR devices from Home Assistant using the ED1 board as a SmartIR bridge."
+---
+
+This guide explains how to integrate the ED1 board with [SmartIR](https://github.com/smartHomeHub/SmartIR) to control IR devices from Home Assistant.
+
+## What is SmartIR?
+
+SmartIR is a Home Assistant integration that lets you control climate devices, fans, and media players via infrared. It uses a database with thousands of predefined IR codes.
+
+## Architecture
+
+```
+┌─────────────┐     IR      ┌─────────┐     WiFi      ┌──────────────┐
+│ Remote      │────────────→│   ED1   │──────────────→│  Home        │
+│ control     │             │ SmartIR │               │  Assistant   │
+└─────────────┘             │ Bridge  │               │  + SmartIR   │
+                            │         │←──────────────│              │
+                            │         │   Services    │              │
+                            └────┬────┘               └──────────────┘
+                                 │
+                                 │ IR
+                                 ↓
+                            ┌─────────┐
+                            │ TV/A-C  │
+                            │ etc.    │
+                            └─────────┘
+```
+
+## Required hardware
+
+### ED1 Rev 1.0 (recommended)
+
+- **IR Receiver**: GPIO33
+- **IR Transmitter**: GPIO32 (built-in IR LED)
+- **Capability**: Full RX + TX
+
+### ED1 Rev 2.3
+
+- **IR Receiver**: GPIO35
+- **IR Transmitter**: Not available (requires external module)
+- **Capability**: Receive only
+
+## Configuration
+
+### 1. Install the firmware
+
+Copy [`ed1-smartir-bridge.yaml`](../ed1-smartir-bridge.yaml) to your ESPHome directory and compile:
+
+```bash
+esphome run ed1-smartir-bridge.yaml
+```
+
+### 2. Configure pins for your board revision
+
+For **Rev 1.0** (edit the YAML file):
+
+```yaml
+substitutions:
+  ir_receiver_pin: "GPIO33"
+  # Uncomment the following line:
+  ir_transmitter_pin: "GPIO32"
+
+packages:
+  # ... other packages ...
+  ir_tx: !include packages/ir-transmitter.yaml # Uncomment this line
+```
+
+For **Rev 2.3**:
+
+```yaml
+substitutions:
+  ir_receiver_pin: "GPIO35"
+  # No transmitter available
+```
+
+### 3. Install SmartIR in Home Assistant
+
+#### Option A: HACS (recommended)
+
+1. Install [HACS](https://hacs.xyz/)
+2. Go to HACS > Integrations
+3. Search for "SmartIR" and install it
+4. Restart Home Assistant
+
+#### Option B: Manual
+
+```bash
+cd config/custom_components
+git clone https://github.com/smartHomeHub/SmartIR.git
+```
+
+### 4. Configure SmartIR
+
+Add the following to your `configuration.yaml`:
+
+```yaml
+smartir:
+
+climate:
+  - platform: smartir
+    name: Aire Acondicionado Sala
+    unique_id: ac_sala
+    device_code: 1060 # Your model's code
+    controller_data:
+      service: esphome.ed1_smartir_bridge_send_ir_nec
+      address: 0x4004
+    temperature_sensor: sensor.temperatura_sala
+    humidity_sensor: sensor.humedad_sala
+
+fan:
+  - platform: smartir
+    name: Ventilador Dormitorio
+    unique_id: fan_dorm
+    device_code: 1020
+    controller_data:
+      service: esphome.ed1_smartir_bridge_send_ir_nec
+      address: 0x0707
+
+media_player:
+  - platform: smartir
+    name: TV Salón
+    unique_id: tv_salon
+    device_code: 1060
+    controller_data:
+      service: esphome.ed1_smartir_bridge_send_ir_nec
+      address: 0x0400
+```
+
+## Using the bridge
+
+### Capturing IR codes
+
+#### Method 1: Learn mode (on the device)
+
+1. Press the "IR Learn Mode" button in Home Assistant
+2. Select a slot (0-9)
+3. Point your remote at the ED1 and press a button
+4. The code is saved automatically
+
+#### Method 2: Events in Home Assistant
+
+1. Open **Developer Tools > Events**
+2. Listen for the `esphome.ed1_ir_received` event
+3. Press any button on your remote
+4. You will see the received code data
+
+### Sending IR codes
+
+#### From HA services
+
+```yaml
+service: esphome.ed1_smartir_bridge_send_ir_nec
+data:
+  address: 16388 # 0x4004 in decimal
+  command: 2295 # 0x08F7 in decimal
+```
+
+```yaml
+service: esphome.ed1_smartir_bridge_send_ir_lg
+data:
+  data: 551489775 # LG code in decimal
+```
+
+#### From learned slots
+
+Use the "IR Send Slot X" buttons to send previously saved codes.
+
+## Available entities
+
+| Entity                                        | Type   | Description                |
+| --------------------------------------------- | ------ | -------------------------- |
+| `text.ed1_smartir_bridge_last_ir_protocol`    | Text   | Last detected protocol     |
+| `text.ed1_smartir_bridge_last_ir_code`        | Text   | Last received code         |
+| `sensor.ed1_smartir_bridge_ir_activity_count` | Sensor | Received code counter      |
+| `button.ed1_smartir_bridge_ir_learn_mode`     | Button | Activate learn mode        |
+| `button.ed1_smartir_bridge_ir_learn_stop`     | Button | Stop learn mode            |
+| `button.ed1_smartir_bridge_ir_send_slot_0`    | Button | Send code from slot 0      |
+
+## Available services
+
+| Service                                       | Description         | Parameters           |
+| --------------------------------------------- | ------------------- | -------------------- |
+| `esphome.ed1_smartir_bridge_send_ir_nec`      | Send NEC code       | `address`, `command` |
+| `esphome.ed1_smartir_bridge_send_ir_lg`       | Send LG code        | `data`               |
+| `esphome.ed1_smartir_bridge_send_ir_samsung`  | Send Samsung code   | `data`               |
+| `esphome.ed1_smartir_bridge_send_ir_sony`     | Send Sony code      | `data`, `nbits`      |
+| `esphome.ed1_smartir_bridge_send_ir_rc5`      | Send RC5 code       | `address`, `command` |
+| `esphome.ed1_smartir_bridge_start_learn_mode` | Start learn mode    | `slot` (0-9)         |
+| `esphome.ed1_smartir_bridge_stop_learn_mode`  | Stop learn mode     | -                    |
+
+## Finding device codes
+
+### SmartIR database
+
+Visit [smartir.readthedocs.io](https://smartir.readthedocs.io) for the full list of supported codes.
+
+### Common codes
+
+| Device | Brand   | SmartIR code   | Protocol  |
+| ------ | ------- | -------------- | --------- |
+| TV     | LG      | 1060           | NEC/LG    |
+| TV     | Samsung | 1020, 1040     | Samsung   |
+| TV     | Sony    | 1010           | Sony      |
+| A/C    | LG      | 1060           | NEC       |
+| A/C    | Samsung | 1200           | NEC       |
+
+### Capturing custom codes
+
+If your device is not in the database:
+
+1. Use the ED1 learn mode
+2. Capture each button on the remote
+3. Note the `address` and `command` values
+4. Create a JSON configuration file for SmartIR
+
+## Troubleshooting
+
+### Not receiving IR codes
+
+- Verify that the RX pin is correctly configured
+- Make sure the IR receiver is not obstructed
+- Check that the remote has battery
+
+### Not sending IR codes (Rev 1.0)
+
+- Verify that the IR transmitter is uncommented in the YAML
+- Use your phone camera to check if the IR LED blinks
+- Make sure the ED1 is within range of the target device
