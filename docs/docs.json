@@ -1,0 +1,53 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "ED1 Citilab",
+  "description": "Documentation for integrating the ED1 Citilab ESP32 educational board with Home Assistant via ESPHome.",
+  "colors": {
+    "primary": "#10B981"
+  },
+  "logo": {
+    "light": "/images/ed1-board.png",
+    "dark": "/images/ed1-board.png"
+  },
+  "favicon": "/images/ed1-board.png",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting started",
+        "pages": [
+          "introduction",
+          "getting-started"
+        ]
+      },
+      {
+        "group": "Hardware",
+        "pages": [
+          "hardware/overview",
+          "hardware/pinout"
+        ]
+      },
+      {
+        "group": "ESPHome",
+        "pages": [
+          "esphome/configuration",
+          "esphome/home-assistant",
+          "esphome/smartir"
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/glifocat/ed1-hoas"
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/glifocat/ed1-hoas"
+    }
+  }
+}

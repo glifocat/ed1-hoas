@@ -1,0 +1,74 @@
+---
+title: "Getting started"
+description: "Set up your ED1 board with ESPHome and Home Assistant."
+---
+
+## Prerequisites
+
+Before you begin, make sure you have the following:
+
+- [Home Assistant](https://www.home-assistant.io/) with the [ESPHome Add-on](https://esphome.io/guides/getting_started_hassio.html) installed
+- ED1 Citilab board (Rev 1.0 or Rev 2.3)
+- USB-C cable
+- [CP210x USB driver](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers) installed on your computer (required for USB communication with the board)
+
+Core packages work on both board revisions. Some peripherals, such as the stepper motor package, are designed for a specific revision. See the [hardware overview](/hardware/overview) for differences between Rev 1.0 and Rev 2.3.
+
+## Step 1: Clone the repository
+
+```bash
+git clone https://github.com/glifocat/ed1-hoas.git
+cd ed1-hoas
+```
+
+## Step 2: Configure secrets
+
+Copy the sample secrets file and fill in your credentials:
+
+```bash
+cp secrets.sample.yaml secrets.yaml
+```
+
+Open `secrets.yaml` in a text editor and replace the placeholder values with your actual credentials:
+
+```yaml
+wifi_ssid: "your_wifi_ssid"
+wifi_password: "your_wifi_password"
+api_encryption_key: "your_api_encryption_key"
+ota_password: "your_ota_password"
+fallback_ap_password: "your_fallback_ap_password"
+```
+
+To generate a random API encryption key, run:
+
+```bash
+python3 -c "import secrets, base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"
+```
+
+If you plan to use MQTT, also fill in the optional MQTT fields (`mqtt_broker`, `mqtt_user`, `mqtt_password`).
+
+## Step 3: Choose a sample configuration
+
+Pick the sample YAML that best fits your use case:
+
+| File | Description |
+| ---- | ----------- |
+| `ed1-message.sample.yaml` | Message display with chat log (recommended for first-time setup) |
+| `ed1-mqtt.sample.yaml` | Dashboard with MQTT messaging |
+| `ed1-status.sample.yaml` | Status display showing WiFi, sensors, uptime, and optional IR |
+| `ed1-ir-blaster.sample.yaml` | IR learning remote with 6 slots (Rev 1.0 only) |
+
+## Step 4: Install on your device
+
+Copy your chosen sample YAML, `secrets.yaml`, the `fonts/` folder, and the `packages/` folder into your ESPHome config directory.
+
+Then, in the Home Assistant ESPHome add-on:
+
+1. Click **+ NEW DEVICE**.
+2. Select **Pick file** and choose the sample YAML you copied.
+3. Connect the ED1 board to your computer via USB-C.
+4. Click **Install** and wait for the firmware to flash.
+
+## Step 5: Add to Home Assistant
+
+Once the device boots and connects to your WiFi network, Home Assistant will auto-discover it. Go to **Settings > Devices & Services** and accept the new integration to add all entities from the board.

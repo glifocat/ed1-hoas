@@ -118,23 +118,30 @@ ed1-hoas/
 │   └── stepper.yaml               # 28BYJ-48 stepper motors via MCP23009
 ├── fonts/
 │   └── pixelmix/                  # Pixelmix font (CC BY-NC-ND 3.0)
-├── docs/
-│   ├── HARDWARE.md                # Hardware reference
-│   ├── PINOUT.md                  # GPIO mapping
-│   ├── ESPHOME.md                 # Configuration guide
-│   ├── HOME-ASSISTANT.md          # Integration guide
-│   ├── images/                    # Board images (CC BY-SA 4.0)
-│   └── datasheets/                # Component PDFs
+├── docs/                              # Mintlify documentation site
+│   ├── docs.json                      # Mintlify site configuration
+│   ├── introduction.mdx               # What is the ED1 board?
+│   ├── getting-started.mdx            # Quick start guide
+│   ├── hardware/
+│   │   ├── overview.mdx               # Hardware reference
+│   │   └── pinout.mdx                 # GPIO mapping
+│   ├── esphome/
+│   │   ├── configuration.mdx          # ESPHome configuration guide
+│   │   ├── home-assistant.mdx         # Home Assistant integration
+│   │   └── smartir.mdx                # SmartIR integration guide
+│   ├── images/                        # Board images (CC BY-SA 4.0)
+│   └── datasheets/                    # Component PDFs
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
 
 ## Documentation
 
-- [Hardware Reference](docs/HARDWARE.md) - Board specifications and components
-- [GPIO Pinout](docs/PINOUT.md) - Pin mapping quick reference
-- [ESPHome Configuration](docs/ESPHOME.md) - Configuration explained
-- [Home Assistant Integration](docs/HOME-ASSISTANT.md) - Dashboards & automations
+- [Hardware Reference](docs/hardware/overview.mdx) - Board specifications and components
+- [GPIO Pinout](docs/hardware/pinout.mdx) - Pin mapping quick reference
+- [ESPHome Configuration](docs/esphome/configuration.mdx) - Configuration explained
+- [Home Assistant Integration](docs/esphome/home-assistant.mdx) - Dashboards & automations
+- [SmartIR Integration](docs/esphome/smartir.mdx) - Control IR devices with SmartIR
 
 ## Home Assistant Entities
 

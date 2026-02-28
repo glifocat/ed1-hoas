@@ -1,0 +1,10 @@
+ED1 2.3/
+datasheets/
+plans/
+.DS_Store
+.agents/
+.claude/
+.kilocode/
+skills-lock.json
+ED1 Stepper Motor.ubl
+SMARTIR.md

@@ -1,0 +1,36 @@
+---
+title: "ED1 Citilab Board"
+description: "ESPHome configuration for integrating the ED1 Citilab ESP32 educational board with Home Assistant."
+---
+
+![ED1 Board](/images/ed1-board.png)
+
+![ED1 Front View](/images/ed1-front-angle.png) ![ED1 Back View](/images/ed1-back-angle.png)
+
+The [ED1](https://citilab.eu) is a Spanish ESP32-based educational board with a TFT display, LED matrix, capacitive touch buttons, and various sensors. This project provides [ESPHome](https://esphome.io) YAML configurations to integrate it with [Home Assistant](https://www.home-assistant.io/).
+
+## Built-in hardware
+
+- **1.44" TFT display** (ST7735) -- shows device status, IP address, temperature
+- **6 capacitive touch buttons** -- exposed as binary sensors
+- **Light sensor** -- ambient light percentage
+- **Buzzer** -- PWM audio output
+- **IR receiver** (38 kHz) -- remote control support
+- **WiFi signal and uptime sensors**
+- **CPU temperature monitoring**
+- **Bluetooth proxy** -- extends Home Assistant BLE range
+
+## Expansion support
+
+These peripherals connect to the board's expansion headers:
+
+- **LED matrix** (WS2812) -- GPIO12 output for LED strips (e.g., 32x8 = 256 LEDs)
+- **Stepper motors** (2x 28BYJ-48) -- via MCP23009 I/O expander and ULN2004A drivers
+
+## Board revisions
+
+The ED1 comes in two hardware revisions: Rev 1.0 and Rev 2.3. Core packages work on both revisions, but some peripherals differ between them. See the [hardware overview](/hardware/overview) for details.
+
+## Next steps
+
+Head to the [getting started](/getting-started) guide to flash your first configuration.
