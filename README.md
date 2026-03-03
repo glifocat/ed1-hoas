@@ -88,7 +88,7 @@ ed1-hoas/
 │   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
 │   ├── mqtt.yaml                  # MQTT broker connectivity (optional)
 │   └── stepper.yaml               # 28BYJ-48 stepper motors via MCP23009
-├── fonts/                         # Pixelmix font (CC BY-NC-ND 3.0)
+├── fonts/                         # Pixelmix font
 ├── scripts/                       # Utility scripts
 ├── docs/                          # Hardware reference files
 │   ├── images/                    # Board photos (CC BY-SA 4.0)
@@ -108,6 +108,11 @@ Want to contribute? Read the [contributing guidelines](CONTRIBUTING.md) to get s
 - **Original hardware documentation and advice** — [vcasado](https://github.com/vcasado)
 - **ED1 Board** — [Citilab Edutec](https://citilab.eu)
 - **ESPHome** — [esphome.io](https://esphome.io)
+
+## Sponsors
+
+- **[Mintlify](https://www.mintlify.com/oss-program?utm_campaign=poweredBy&utm_medium=referral&utm_source=glifocat)** — free Pro plan through the Mintlify OSS Program
+- **[Kilo Code](https://kilo.ai/oss)** — enterprise access through the Kilo OSS Program
 
 ## Third-party licenses
 
