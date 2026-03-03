@@ -100,20 +100,21 @@ ed1-hoas/
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Want to contribute? Read the [contributing guidelines](CONTRIBUTING.md) to get started.
 
-## License
+## Thanks
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
+- **Created and maintained by** — [glifocat](https://github.com/glifocat)
+- **Original hardware documentation and advice** — [vcasado](https://github.com/vcasado)
+- **ED1 Board** — [Citilab Edutec](https://citilab.eu)
+- **ESPHome** — [esphome.io](https://esphome.io)
 
-## Credits
+## Third-party licenses
 
-- **Created & Maintained by**: [glifocat](https://github.com/glifocat)
-- **Original Hardware Documentation & Advice**: [vcasado](https://github.com/vcasado)
-- **ED1 Board**: [Citilab Edutec](https://citilab.eu)
-- **Board Images**: [Citilab Market](https://market.citilab.eu/es/producte/placa-ed1/) (CC BY-SA 4.0)
-- **ESPHome**: [esphome.io](https://esphome.io)
-- **Pixelmix Font**: [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
+- **Board images** — [Citilab Market](https://market.citilab.eu/es/producte/placa-ed1/) (CC BY-SA 4.0)
+- **Pixelmix font** — [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
+
+This project is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for details.
 
 ## Links
 
