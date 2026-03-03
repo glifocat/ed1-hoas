@@ -1,0 +1,4 @@
+# Tell GitHub Linguist to count YAML as code (not data)
+# so the repo language reflects ESPHome configurations
+*.yaml linguist-detectable
+*.yml linguist-detectable
