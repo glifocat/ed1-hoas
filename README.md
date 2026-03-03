@@ -88,7 +88,7 @@ ed1-hoas/
 │   ├── led-matrix.yaml            # 32x8 WS2812B LED matrix
 │   ├── mqtt.yaml                  # MQTT broker connectivity (optional)
 │   └── stepper.yaml               # 28BYJ-48 stepper motors via MCP23009
-├── fonts/                         # Pixelmix font (CC BY-NC-ND 3.0)
+├── fonts/                         # Pixelmix font
 ├── scripts/                       # Utility scripts
 ├── docs/                          # Hardware reference files
 │   ├── images/                    # Board photos (CC BY-SA 4.0)
@@ -100,20 +100,26 @@ ed1-hoas/
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Want to contribute? Read the [contributing guidelines](CONTRIBUTING.md) to get started.
 
-## License
+## Thanks
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
+- **Created and maintained by** — [glifocat](https://github.com/glifocat)
+- **Original hardware documentation and advice** — [vcasado](https://github.com/vcasado)
+- **ED1 Board** — [Citilab Edutec](https://citilab.eu)
+- **ESPHome** — [esphome.io](https://esphome.io)
 
-## Credits
+## Sponsors
 
-- **Created & Maintained by**: [glifocat](https://github.com/glifocat)
-- **Original Hardware Documentation & Advice**: [vcasado](https://github.com/vcasado)
-- **ED1 Board**: [Citilab Edutec](https://citilab.eu)
-- **Board Images**: [Citilab Market](https://market.citilab.eu/es/producte/placa-ed1/) (CC BY-SA 4.0)
-- **ESPHome**: [esphome.io](https://esphome.io)
-- **Pixelmix Font**: [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
+- **[Mintlify](https://www.mintlify.com/oss-program?utm_campaign=poweredBy&utm_medium=referral&utm_source=glifocat)** — free Pro plan through the Mintlify OSS Program
+- **[Kilo Code](https://kilo.ai/oss)** — enterprise access through the Kilo OSS Program
+
+## Third-party licenses
+
+- **Board images** — [Citilab Market](https://market.citilab.eu/es/producte/placa-ed1/) (CC BY-SA 4.0)
+- **Pixelmix font** — [Andrew Tyler](https://www.andrewtyler.net) (CC BY-NC-ND 3.0)
+
+This project is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for details.
 
 ## Links
 
