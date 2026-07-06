@@ -23,9 +23,14 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  # Floor set at the 2026.1 breaking changes (ESP-IDF default framework,
+  # API password removal, OTA MD5 removal); CI tests against 2026.6.x
+  min_version: 2026.1.0
 
 esp32:
   board: esp32dev
+  # ESPHome 2026.4 raised the default to 240MHz; keep 160MHz for battery life
+  cpu_frequency: 160MHZ
   framework:
     type: arduino
 
