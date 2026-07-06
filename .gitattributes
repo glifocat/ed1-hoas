@@ -2,3 +2,7 @@
 # so the repo language reflects ESPHome configurations
 *.yaml linguist-detectable
 *.yml linguist-detectable
+
+# Normalize line endings: yamllint (CI) requires Unix newlines
+*.yaml text eol=lf
+*.yml text eol=lf

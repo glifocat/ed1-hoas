@@ -132,7 +132,7 @@ remote_receiver:
              id(buzzer_output).turn_on(); delay(50); id(buzzer_output).turn_off();
              return;
           }
-           
+
           id(detected_brand) = "Samsung (Other)";
           id(detected_code) = "Unknown";
 
