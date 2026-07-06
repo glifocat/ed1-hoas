@@ -1,0 +1,102 @@
+# ==============================================================================
+# ED1 Buttons Package - GPIO variant (simulation / external buttons)
+# ==============================================================================
+# Same button IDs, names, and beeps as buttons.yaml, but implemented as plain
+# GPIO inputs instead of capacitive touch. Intended for the Wokwi simulator
+# (which does not emulate the ESP32 touch peripheral) or for boards with
+# external pushbuttons wired to the touch pads.
+#
+# Wire each button between the GPIO and GND; internal pull-ups are enabled.
+# Include this package INSTEAD of buttons.yaml, never both.
+# ==============================================================================
+
+binary_sensor:
+  - platform: gpio
+    id: btn_up
+    name: "${friendly_name} Button Up"
+    pin:
+      number: GPIO4
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Up PRESSED"
+
+  - platform: gpio
+    id: btn_down
+    name: "${friendly_name} Button Down"
+    pin:
+      number: GPIO13
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Down PRESSED"
+
+  - platform: gpio
+    id: btn_left
+    name: "${friendly_name} Button Left"
+    pin:
+      number: GPIO2
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Left PRESSED"
+
+  - platform: gpio
+    id: btn_right
+    name: "${friendly_name} Button Right"
+    pin:
+      number: GPIO27
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'beep:d=16,o=5,b=140:c'
+      - logger.log: "Button Right PRESSED"
+
+  - platform: gpio
+    id: btn_ok
+    name: "${friendly_name} Button OK"
+    pin:
+      number: GPIO15
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
+      - logger.log: "Button OK PRESSED"
+
+  - platform: gpio
+    id: btn_x
+    name: "${friendly_name} Button X"
+    pin:
+      number: GPIO14
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
+      - logger.log: "Button X PRESSED"
