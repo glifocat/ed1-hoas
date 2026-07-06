@@ -13,6 +13,7 @@
 substitutions:
   device_name: ed1-smartir-detector
   friendly_name: ED1 SmartIR Detector
+  ap_ssid: ED1-SmartIR-Rescue
   # For Rev 1.0 boards, uncomment the next line:
   # ir_receiver_pin: "GPIO33"
 
