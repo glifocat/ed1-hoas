@@ -1,0 +1,187 @@
+# ==============================================================================
+# ED1 Virtual Board - Wokwi Simulator Configuration
+# ==============================================================================
+#
+# Runs the ED1 status dashboard on a simulated ESP32 in Wokwi, no hardware
+# required. See wokwi/README.md for setup and usage.
+#
+# Differences from a real ED1:
+#   - Buttons are plain GPIO pushbuttons (Wokwi does not emulate the ESP32
+#     capacitive touch peripheral), wired to the same pins as the touch pads
+#   - WiFi connects to Wokwi's built-in open access point, so no secrets.yaml
+#     is needed and the native API has no encryption key
+#   - No Bluetooth proxy (not supported by the simulator)
+#
+# Build:   esphome compile ed1-wokwi.yaml
+# Run:     wokwi-cli wokwi/   (or the Wokwi VS Code extension)
+#
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-wokwi
+  friendly_name: ED1 Wokwi
+
+packages:
+  colors: !include packages/display-colors.yaml
+  layout: !include packages/display-layout.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons-gpio.yaml  # GPIO variant, see header note
+  sensors: !include packages/sensors.yaml
+
+# --- Core (standalone equivalent of packages/core.yaml, without secrets) ---
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.1.0
+  on_boot:
+    priority: -100
+    then:
+      - rtttl.play: 'startup:d=16,o=5,b=180:c,e,g,c6'
+      - delay: 3s
+      - lambda: 'id(boot_complete) = true;'
+
+esp32:
+  board: esp32dev
+  cpu_frequency: 160MHZ
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+# Unencrypted API: the simulator is local-only; add an encryption key if you
+# forward the port to a real Home Assistant instance
+api:
+
+wifi:
+  ssid: Wokwi-GUEST
+  password: ""
+  power_save_mode: NONE
+
+# Force include components to fix linker errors
+number:
+script:
+
+globals:
+  - id: boot_complete
+    type: bool
+    initial_value: 'false'
+
+# Time sync (works through the simulated network)
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Madrid
+
+# Same dashboard layout as ed1-status.sample.yaml
+display:
+  - id: !extend internal_display
+    lambda: |-
+      auto BG      = Color(${color_bg});
+      auto TEXT    = Color(${color_text});
+      auto MUTED   = Color(${color_muted});
+      auto OK      = Color(${color_ok});
+      auto WARN    = Color(${color_warn});
+      auto ERR     = Color(${color_error});
+      auto ACCENT  = Color(${color_accent});
+      auto HIGHLIGHT = Color(${color_highlight});
+
+      const int W = ${display_width};
+      const int HEADER_H = ${header_height};
+      const int FOOTER_Y = ${footer_y};
+      const int PAD = ${padding};
+
+      // Draw horizontal bar graph
+      auto draw_bar = [&](int x, int y, int width, int height, float percent, Color fill_color) {
+        int filled = (int)(width * (percent / 100.0f));
+        if (filled > 0) {
+          it.filled_rectangle(x, y, filled, height, fill_color);
+        }
+        if (filled < width) {
+          it.filled_rectangle(x + filled, y, width - filled, height, MUTED);
+        }
+      };
+
+      // Format uptime
+      auto format_uptime = [](int seconds) {
+        int d = seconds / 86400;
+        int h = (seconds % 86400) / 3600;
+        int m = (seconds % 3600) / 60;
+        char buf[20];
+        if (d > 0) snprintf(buf, sizeof(buf), "%dd %dh %dm", d, h, m);
+        else if (h > 0) snprintf(buf, sizeof(buf), "%dh %dm", h, m);
+        else snprintf(buf, sizeof(buf), "%dm %ds", m, seconds % 60);
+        return std::string(buf);
+      };
+
+      it.fill(BG);
+
+      // Boot splash
+      if (!id(boot_complete)) {
+        it.filled_rectangle(0, 40, W, 30, HIGHLIGHT);
+        it.print(W/2, 48, id(large_font), BG, TextAlign::CENTER, "ED1");
+        it.print(W/2, 80, id(pixel_font), MUTED, TextAlign::CENTER, "WOKWI");
+        return;
+      }
+
+      // --- HEADER ---
+      it.print(PAD, 4, id(pixel_font), HIGHLIGHT, "ED1");
+
+      auto time = id(sntp_time).now();
+      if (time.is_valid()) {
+        it.strftime(W - PAD, 4, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%H:%M", time);
+      }
+
+      // Connection dot
+      bool connected = !id(wifi_ip).state.empty();
+      if (connected) {
+        it.filled_circle(40, 8, 3, OK);
+      } else {
+        int sec = (int)id(uptime_sensor).state;
+        it.filled_circle(40, 8, 3, (sec % 2 == 0) ? WARN : BG);
+      }
+
+      it.horizontal_line(0, HEADER_H, W, MUTED);
+
+      // --- HERO METRIC (Temperature) ---
+      float temp = id(cpu_temp).state;
+      it.printf(W/2, 32, id(large_font), HIGHLIGHT, TextAlign::TOP_CENTER, "%.0f", temp);
+      it.print(W/2 + 20, 32, id(pixel_font), TEXT, "C");
+      it.print(W/2, 52, id(pixel_font), MUTED, TextAlign::TOP_CENTER, "TEMP");
+
+      // --- BAR GRAPHS ---
+      int bar_y = 70;
+      int bar_width = 70;
+      int bar_height = 6;
+      int label_x = PAD;
+      int bar_x = 40;
+      int value_x = W - PAD;
+
+      // Light level (photoresistor part in the simulator)
+      float light = id(light_sensor).state;
+      it.print(label_x, bar_y, id(pixel_font), WARN, "LIGHT");
+      draw_bar(bar_x, bar_y + 2, bar_width, bar_height, light, WARN);
+      it.printf(value_x, bar_y, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%.0f%%", light);
+
+      // Signal strength
+      bar_y += 16;
+      int rssi = id(wifi_rssi);
+      float signal_pct = constrain((rssi + 100) * 2, 0, 100);
+      Color sig_color = (rssi > -60) ? OK : (rssi > -75) ? WARN : ERR;
+      it.print(label_x, bar_y, id(pixel_font), sig_color, "RSSI");
+      draw_bar(bar_x, bar_y + 2, bar_width, bar_height, signal_pct, sig_color);
+      it.printf(value_x, bar_y, id(pixel_font), TEXT, TextAlign::TOP_RIGHT, "%ddB", rssi);
+
+      // --- FOOTER ---
+      it.horizontal_line(0, FOOTER_Y, W, MUTED);
+
+      int seconds = (int)id(uptime_sensor).state;
+      std::string up = format_uptime(seconds);
+      it.print(PAD, ${footer_text_y}, id(pixel_font), MUTED, "UP");
+      it.print(20, ${footer_text_y}, id(pixel_font), TEXT, up.c_str());
+
+      it.print(W - PAD, ${footer_text_y}, id(pixel_font), ACCENT, TextAlign::TOP_RIGHT,
+               id(wifi_ip).state.c_str());

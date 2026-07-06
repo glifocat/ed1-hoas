@@ -106,6 +106,7 @@ jobs:
           - ed1-mqtt.sample.yaml
           - ed1-robot-demo.yaml
           - ed1-smartir-detector.yaml
+          - ed1-wokwi.yaml
 
     steps:
       - name: Checkout repository
