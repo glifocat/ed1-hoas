@@ -5,7 +5,7 @@
 # - Validates ESPHome YAML configurations on push/PR
 # - Compiles core configurations to catch C++ and component errors
 # - Checks for new ESPHome versions weekly
-# - Creates an issue when a new major/minor version is detected
+# - Creates an issue when the pinned CI version falls behind the latest release
 # ==============================================================================
 
 name: ESPHome Check
@@ -26,8 +26,7 @@ on:
   workflow_dispatch:
 
 env:
-  ESPHOME_VERSION: "2025.2.0"
-  ESPHOME_VERSION_FILE: ".esphome-version"
+  ESPHOME_VERSION: "2026.6.4"
 
 permissions:
   contents: read
@@ -48,7 +47,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install ESPHome
         run: pip install esphome==${{ env.ESPHOME_VERSION }}
@@ -67,13 +66,11 @@ jobs:
           mqtt_password: "test-password"
           EOF
 
-      - name: Validate sample configurations
+      - name: Validate configurations
         run: |
-          for config in ed1-status.sample.yaml ed1-message.sample.yaml ed1-mqtt.sample.yaml; do
-            if [ -f "$config" ]; then
-              echo "Validating $config..."
-              esphome config "$config" 2>&1 || { echo "::error::Validation failed for $config"; exit 1; }
-            fi
+          for config in ed1-*.yaml; do
+            echo "Validating $config..."
+            esphome config "$config" 2>&1 || { echo "::error::Validation failed for $config"; exit 1; }
           done
 
       - name: YAML Lint
@@ -96,7 +93,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate-config
     if: github.event_name != 'schedule'
-    timeout-minutes: 15
+    # Arduino is built as an ESP-IDF component since ESPHome 2025.10, so cold
+    # builds compile the whole framework; the cache keeps warm builds fast
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -105,6 +104,9 @@ jobs:
           - ed1-message.sample.yaml
           - ed1-status.sample.yaml
           - ed1-mqtt.sample.yaml
+          - ed1-robot-demo.yaml
+          - ed1-smartir-detector.yaml
+          - ed1-wokwi.yaml
 
     steps:
       - name: Checkout repository
@@ -113,10 +115,20 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install ESPHome
         run: pip install esphome==${{ env.ESPHOME_VERSION }}
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .esphome
+          key: esphome-build-${{ env.ESPHOME_VERSION }}-${{ matrix.config }}
+          restore-keys: |
+            esphome-build-${{ env.ESPHOME_VERSION }}-
 
       - name: Create secrets file
         # NOTE: Keep in sync with the identical block in the validate-config job
@@ -159,43 +171,22 @@ jobs:
           echo "version=$LATEST" >> $GITHUB_OUTPUT
           echo "Latest ESPHome version: $LATEST"
 
-      - name: Get current version from README
-        id: readme
-        run: |
-          # Extract version from badge: ESPHome-2025.x
-          CURRENT=$(grep -oP 'ESPHome-\K[0-9]+(?=\.x)' README.md | head -1 || echo "unknown")
-          echo "major=$CURRENT" >> $GITHUB_OUTPUT
-          echo "Current major version in README: $CURRENT"
-
       - name: Compare versions
         id: check
         run: |
           LATEST="${{ steps.pypi.outputs.version }}"
-          CURRENT="${{ steps.readme.outputs.major }}"
-
-          # Extract major from latest (e.g., 2025.2.0 -> 2025)
-          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
+          CURRENT="${{ env.ESPHOME_VERSION }}"
 
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
-          if [ "$LATEST_MAJOR" != "$CURRENT" ]; then
+          if [ "$LATEST" != "$CURRENT" ]; then
             echo "new-version=true" >> $GITHUB_OUTPUT
-            echo "::warning::New ESPHome major version available: $LATEST (current: $CURRENT.x)"
+            echo "::warning::New ESPHome version available: $LATEST (CI pins $CURRENT)"
           else
             echo "new-version=false" >> $GITHUB_OUTPUT
-            echo "ESPHome is up to date: $CURRENT.x series"
+            echo "ESPHome is up to date: $CURRENT"
           fi
-
-      - name: Save version to file
-        run: |
-          echo "${{ steps.pypi.outputs.version }}" > ${{ env.ESPHOME_VERSION_FILE }}
-
-      - name: Upload version file
-        uses: actions/upload-artifact@v4
-        with:
-          name: esphome-version
-          path: ${{ env.ESPHOME_VERSION_FILE }}
 
   # ---------------------------------------------------------------------------
   # Create issue for new version notification
@@ -236,15 +227,16 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `🔄 ESPHome ${latest} disponible (actual: ${current}.x)`,
+              title: `🔄 ESPHome ${latest} disponible (actual: ${current})`,
               body: `## Nueva versión de ESPHome disponible
 
             **Versión detectada:** \`${latest}\`
-            **Versión actual en README:** \`${current}.x\`
+            **Versión fijada en CI:** \`${current}\`
 
             ### Acciones recomendadas
             - [ ] Revisar [notas de la versión](https://github.com/esphome/esphome/releases/tag/${latest})
-            - [ ] Actualizar el badge en README.md
+            - [ ] Actualizar \`ESPHOME_VERSION\` en \`.github/workflows/esphome-check.yml\`
+            - [ ] Actualizar el badge en README.md si cambia la serie
             - [ ] Probar las configuraciones con la nueva versión
             - [ ] Actualizar documentación si hay cambios en la API
 
