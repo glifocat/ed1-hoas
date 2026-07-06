@@ -1,7 +1,7 @@
 # ED1 Citilab Board - Home Assistant Integration
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![ESPHome](https://img.shields.io/badge/ESPHome-2025.x-brightgreen.svg)](https://esphome.io)
+[![ESPHome](https://img.shields.io/badge/ESPHome-2026.x-brightgreen.svg)](https://esphome.io)
 [![CI](https://github.com/glifocat/ed1-hoas/actions/workflows/esphome-check.yml/badge.svg)](https://github.com/glifocat/ed1-hoas/actions/workflows/esphome-check.yml)
 [![ESP32](https://img.shields.io/badge/ESP32-supported-blue.svg)](https://www.espressif.com/en/products/socs/esp32)
 
