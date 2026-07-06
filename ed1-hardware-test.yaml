@@ -294,7 +294,7 @@ display:
           it.print(4, 24, id(pixel_font), "Cover the sensor!");
           it.printf(4, 44, id(pixel_font), "now:  %.1f", id(light_sensor).state);
           it.printf(4, 54, id(pixel_font), "base: %.1f", id(ldr_baseline));
-          it.print(4, 70, id(pixel_font), "auto-pass at -50%%");
+          it.print(4, 70, id(pixel_font), "auto-pass at -50%");
           it.print(4, 110, id(pixel_font), "15s timeout");
           break;
         }
