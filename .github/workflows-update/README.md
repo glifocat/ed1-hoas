@@ -17,7 +17,7 @@ Changes relative to the current workflow:
 
 - Pin ESPHome 2026.6.4 (was 2025.2.0) and Python 3.13
 - Validate all `ed1-*.yaml` configs instead of only the three samples
-- Add `ed1-robot-demo.yaml` and `ed1-smartir-detector.yaml` to the compile matrix
+- Add `ed1-robot-demo.yaml`, `ed1-smartir-detector.yaml`, and `ed1-wokwi.yaml` to the compile matrix
 - Cache PlatformIO/ESPHome build dirs and raise the compile timeout to 30 min
   (Arduino is built as an ESP-IDF component since ESPHome 2025.10, so cold
   builds compile the entire framework)

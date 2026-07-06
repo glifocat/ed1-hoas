@@ -1,0 +1,16 @@
+# Wokwi simulator project config for the virtual ED1
+# Docs: https://docs.wokwi.com/vscode/project-config
+#
+# Paths are relative to this file. Build the firmware first, from the repo
+# root:  esphome compile ed1-wokwi.yaml
+
+[wokwi]
+version = 1
+elf = "../.esphome/build/ed1-wokwi/.pioenvs/ed1-wokwi/firmware.elf"
+firmware = "../.esphome/build/ed1-wokwi/.pioenvs/ed1-wokwi/firmware.bin"
+
+# Forward the ESPHome native API port so a Home Assistant instance on this
+# machine can connect to the simulated ED1 at localhost:6053
+[[net.forward]]
+from = "localhost:6053"
+to = "target:6053"
