@@ -1,0 +1,233 @@
+# ==============================================================================
+# ED1 Hardware Self-Test - guided on-device test sequence (see Task 5 header)
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-hwtest
+  friendly_name: ED1 HW Test
+  ap_ssid: ED1-HWTest-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  ir_receiver: !include packages/ir-receiver.yaml
+  led_matrix: !include packages/led-matrix.yaml
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      # Matrix light must be ON for the addressable_light display to render.
+      # Low brightness: 256 WS2812 at full white would brown out USB power.
+      - light.turn_on:
+          id: led_matrix_light
+          brightness: 25%
+          red: 100%
+          green: 100%
+          blue: 100%
+      - script.execute: sound_startup
+      - script.execute: step_watchdog
+
+globals:
+  - id: test_step          # current step 0..7
+    type: int
+    initial_value: '0'
+  - id: step_results       # 0=pending 1=pass 2=fail, index = step
+    type: std::vector<int>
+    initial_value: 'std::vector<int>(8, 0)'
+  - id: btn_index          # step 4: which button is currently prompted (0..5)
+    type: int
+    initial_value: '0'
+  - id: step4_fails        # step 4: count of wrong presses
+    type: int
+    initial_value: '0'
+  - id: ldr_baseline       # step 5: light level captured on step entry
+    type: float
+    initial_value: '0'
+  - id: walk_pos           # step 2: walking pixel 0..255, then fill phases
+    type: int
+    initial_value: '0'
+  - id: last_ir            # step 6: last decoded IR code, for the TFT
+    type: std::string
+
+script:
+  - id: pass_step
+    then:
+      - lambda: 'id(step_results)[id(test_step)] = 1;'
+      - script.execute: sound_success
+      - script.execute: next_step
+
+  - id: fail_step
+    then:
+      - lambda: 'id(step_results)[id(test_step)] = 2;'
+      - script.execute: sound_alert
+      - script.execute: next_step
+
+  - id: next_step
+    then:
+      - lambda: |-
+          id(test_step) += 1;
+          switch (id(test_step)) {
+            case 2:
+              id(walk_pos) = 0;
+              break;
+            case 3:
+              id(buzzer_rtttl).play("scale:d=8,o=5,b=160:c,d,e,f,g,a,b,c6");
+              break;
+            case 4:
+              id(btn_index) = 0;
+              id(step4_fails) = 0;
+              // esp32_touch raw values only appear in setup_mode builds; leave a
+              // diagnosis breadcrumb for 2026.x threshold drift.
+              ESP_LOGI("hwtest", "Touch step: if presses do not register, rebuild "
+                       "with esp32_touch setup_mode: true to read raw values");
+              break;
+            case 5:
+              id(ldr_baseline) = isnan(id(light_sensor).state) ? 0.0f : id(light_sensor).state;
+              ESP_LOGI("hwtest", "LDR baseline: %.1f", id(ldr_baseline));
+              break;
+            case 6:
+              id(last_ir) = "";
+              break;
+            case 7: {
+              bool all = true;
+              for (int i = 0; i < 7; i++) {
+                ESP_LOGI("hwtest", "Step %d: %s", i, id(step_results)[i] == 1 ? "PASS" : "FAIL");
+                if (id(step_results)[i] != 1) all = false;
+              }
+              ESP_LOGI("hwtest", "RESULT: %s", all ? "ALL PASS" : "FAILURES PRESENT");
+              break;
+            }
+          }
+      - script.execute: step_watchdog
+
+  # Timeouts: step 0 (WiFi) 20s, steps 5/6 (LDR, IR) 15s. mode: restart means
+  # every step change re-arms it; steps without a timeout just fall through.
+  - id: step_watchdog
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(test_step) == 0;'
+          then:
+            - delay: 20s
+            - if:
+                condition:
+                  lambda: 'return id(test_step) == 0;'
+                then:
+                  - script.execute: fail_step
+      - if:
+          condition:
+            lambda: 'return id(test_step) == 5 || id(test_step) == 6;'
+          then:
+            - delay: 15s
+            - if:
+                condition:
+                  lambda: 'return id(test_step) == 5 || id(test_step) == 6;'
+                then:
+                  - script.execute: fail_step
+
+  # btn: 0=UP 1=DOWN 2=LEFT 3=RIGHT 4=OK 5=X
+  - id: handle_button
+    parameters:
+      btn: int
+    then:
+      - lambda: |-
+          int step = id(test_step);
+          if (step == 4) {
+            if (btn == id(btn_index)) {
+              ESP_LOGI("hwtest", "Touch button %d OK", btn);
+            } else {
+              ESP_LOGW("hwtest", "Touch: expected %d, got %d", id(btn_index), btn);
+              id(step4_fails) += 1;
+            }
+            id(btn_index) += 1;
+            if (id(btn_index) >= 6) {
+              if (id(step4_fails) == 0) id(pass_step).execute();
+              else id(fail_step).execute();
+            }
+            return;
+          }
+          if (btn == 2) {  // LEFT: mark current step failed, move on
+            if (step <= 6) id(fail_step).execute();
+            return;
+          }
+          if (btn == 4) {  // OK: confirm observed steps
+            if (step >= 1 && step <= 3) id(pass_step).execute();
+          }
+
+  - id: restart_test
+    then:
+      - lambda: |-
+          for (int i = 0; i < 8; i++) id(step_results)[i] = 0;
+          id(test_step) = 0;
+          id(btn_index) = 0;
+          id(step4_fails) = 0;
+          id(walk_pos) = 0;
+          id(last_ir) = "";
+      - script.execute: sound_notify
+      - script.execute: step_watchdog
+
+interval:
+  # Step 0 auto-pass when WiFi connects
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(test_step) == 0;'
+              - wifi.connected:
+          then:
+            - script.execute: pass_step
+
+binary_sensor:
+  - id: !extend btn_up
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 0
+  - id: !extend btn_down
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 1
+  - id: !extend btn_left
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 2
+  - id: !extend btn_right
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 3
+  - id: !extend btn_ok
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 4
+    # Hold OK >=1.5s restarts the whole sequence (intended from the summary
+    # screen; mid-test it will first register a normal OK press).
+    on_multi_click:
+      - timing:
+          - ON for at least 1.5s
+        then:
+          - script.execute: restart_test
+  - id: !extend btn_x
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 5
+
+display:
+  - id: !extend internal_display
+    update_interval: 250ms
+    lambda: |-
+      it.fill(Color(0, 0, 0));
+      it.printf(2, 2, id(message_font), "HW TEST %d/7", id(test_step));
+      // Task 2 replaces this stub with full per-step screens.
