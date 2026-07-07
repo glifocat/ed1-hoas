@@ -15,16 +15,25 @@
 #   it.print(x, y, id(icons_12), color, "\U0000e63e");  // WiFi icon
 #
 # Browse more icons: https://fonts.google.com/icons
+#
+# Remote packages note: font paths resolve against the CONSUMER's config
+# directory, not this repo. When using this package via github://, override
+# the substitution below with the raw URL so the font downloads at build time:
+#   pixelmix_font: "https://raw.githubusercontent.com/glifocat/ed1-hoas/main/fonts/pixelmix/pixelmix.ttf"
 # ==============================================================================
 
+substitutions:
+  # Local path by default; remote consumers override with a https:// URL
+  pixelmix_font: "fonts/pixelmix/pixelmix.ttf"
+
 font:
-  - file: "fonts/pixelmix/pixelmix.ttf"
+  - file: "${pixelmix_font}"
     id: pixel_font
     size: 8
-  - file: "fonts/pixelmix/pixelmix.ttf"
+  - file: "${pixelmix_font}"
     id: message_font
     size: 10
-  - file: "fonts/pixelmix/pixelmix.ttf"
+  - file: "${pixelmix_font}"
     id: large_font
     size: 16
   - file: "gfonts://Material+Symbols+Outlined"
