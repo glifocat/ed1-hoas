@@ -57,6 +57,7 @@ directive. The packages are also consumable as **remote packages**
 ### Sample Configurations
 
 - `ed1-message.sample.yaml` - Message display with chat log (HA API)
+- `ed1-scene-deck.sample.yaml` - 6-button HA action deck; companion blueprint in `ha/blueprints/`
 - `ed1-mqtt.sample.yaml` - Dashboard with MQTT messaging
 - `ed1-status.sample.yaml` - Status display showing WiFi, sensors, uptime (optional IR)
 - `ed1-smartir-detector.yaml` - IR code detector for SmartIR (Rev 2.3)
@@ -121,7 +122,11 @@ packages:
   # ... other packages as needed
 ```
 
-To override or extend package components, use `!extend`:
+To override or extend package components, use `!extend`. Note that automation
+lists like `on_press` are **appended to**, not replaced (verified on hardware
+2026-07-07) — a config extending a button that already plays a beep must not
+re-add the beep, or both play and the second is rejected with an
+"Already playing" warning:
 
 ```yaml
 display:
