@@ -59,6 +59,53 @@ Supports both **Rev 1.0** and **Rev 2.3** boards. See the [hardware reference](h
 | `ed1-stepper-test.yaml` | Stepper motor testing and calibration |
 | `ed1-gpio-test.yaml` | MCP23009 GPIO diagnostic tool |
 
+## Use as Remote Packages
+
+You don't need to clone this repo — ESPHome can pull the packages straight
+from GitHub. Credentials are injected via substitutions, because remote
+packages can't read your `secrets.yaml` directly:
+
+```yaml
+substitutions:
+  device_name: ed1-livingroom
+  friendly_name: ED1 Living Room
+  ap_ssid: ED1-LivingRoom-Rescue
+  # Credentials injected into the packages
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  fallback_ap_password: !secret fallback_ap_password
+  api_encryption_key: !secret api_encryption_key
+  ota_password: !secret ota_password
+  # Fonts resolve against YOUR config dir, so point pixelmix at this repo
+  pixelmix_font: "https://raw.githubusercontent.com/glifocat/ed1-hoas/main/fonts/pixelmix/pixelmix.ttf"
+
+packages:
+  ed1:
+    url: https://github.com/glifocat/ed1-hoas
+    ref: v1.0.0  # pin a release tag (or use main to track latest)
+    refresh: 1d
+    files:
+      - packages/display-colors.yaml
+      - packages/display-layout.yaml
+      - packages/core.yaml
+      - packages/hardware.yaml
+      - packages/display.yaml
+      - packages/fonts.yaml
+      - packages/buzzer.yaml
+      - packages/buttons.yaml
+      - packages/sensors.yaml
+```
+
+Notes:
+
+- **Pin `ref:` to a release tag** for reproducible builds. Releases follow
+  SemVer — substitution or component ID renames only happen in major versions.
+- **Package dependencies:** `buttons.yaml` needs `buzzer.yaml` (button sounds),
+  and `display.yaml` needs `hardware.yaml`, `fonts.yaml`, `display-colors.yaml`
+  and `display-layout.yaml`. The list above is a working baseline.
+- **MQTT:** add `packages/mqtt.yaml` to the list and provide `mqtt_broker`,
+  `mqtt_user` and `mqtt_password` substitutions.
+
 ## Prerequisites
 
 - [Home Assistant](https://www.home-assistant.io/) with [ESPHome Add-on](https://esphome.io/guides/getting_started_hassio.html)

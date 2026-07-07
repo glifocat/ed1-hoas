@@ -34,7 +34,7 @@ substitution of the same conceptual name:
 | core.yaml | `${wifi_ssid}` | `!secret wifi_ssid` |
 | core.yaml | `${wifi_password}` | `!secret wifi_password` |
 | core.yaml | `${fallback_ap_password}` | `!secret fallback_ap_password` |
-| core.yaml | `${api_encryption_key}` | `!secret api_encryption_key_full` |
+| core.yaml | `${api_encryption_key}` | `!secret api_encryption_key` |
 | core.yaml | `${ota_password}` | `!secret ota_password` |
 | mqtt.yaml | `${mqtt_broker}` | `!secret mqtt_broker` |
 | mqtt.yaml | `${mqtt_user}` | `!secret mqtt_user` |
@@ -55,7 +55,7 @@ substitutions:
   wifi_ssid: !secret wifi_ssid
   wifi_password: !secret wifi_password
   fallback_ap_password: !secret fallback_ap_password
-  api_encryption_key: !secret api_encryption_key_full
+  api_encryption_key: !secret api_encryption_key
   ota_password: !secret ota_password
 ```
 
@@ -72,6 +72,19 @@ Minimal consumer example (substitutions + `github://` refs pinned to
 After merge: tag `v1.0.0`, publish a GitHub Release. SemVer from here on —
 renaming substitutions, changing component IDs, or removing packages is a
 major bump; new packages/features are minor.
+
+## Amendments during implementation
+
+- **Secret key standardized to `api_encryption_key`** (was
+  `api_encryption_key_full` in configs/CI while `secrets.sample.yaml` always
+  documented `api_encryption_key` — pre-existing drift; configs and the CI
+  stub now match the template).
+- **Fonts:** font `file:` paths resolve against the consumer's config dir,
+  not the package clone. Fixed via a `pixelmix_font` substitution in
+  `fonts.yaml` defaulting to the local path; remote consumers override it
+  with the raw GitHub URL (web fonts download at build time).
+- **Package dependency documented:** `buttons.yaml` requires `buzzer.yaml`
+  (`rtttl.play` actions).
 
 ## Verification
 
