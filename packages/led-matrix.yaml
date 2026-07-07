@@ -6,7 +6,12 @@ light:
   - platform: esp32_rmt_led_strip
     rgb_order: GRB
     chipset: WS2812
-    pin: GPIO12
+    # Hardware-verified 2026-07-07: the matrix is an EXTERNAL accessory that
+    # plugs into the D2 header (S=data, +=5V, -=GND) = GPIO25. The old GPIO12
+    # (D1) assignment was never hardware-tested; GPIO12 is also a strapping
+    # pin (MTDI) - a panel pulling it high at reset selects 1.8V flash and
+    # the board never boots.
+    pin: GPIO25
     num_leds: 256
     name: "${friendly_name} LED Matrix"
     id: led_matrix_light

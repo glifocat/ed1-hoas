@@ -11,7 +11,10 @@
 #   0 WiFi     auto - connect within 20s (offline: shows fallback AP, continues)
 #   1 Display  eyes - color bars, 1px border, "R" marker top-right
 #   2 Matrix   eyes - single pixel sweeps row by row (catches pixel_mapper
-#                     errors solid fills can't), then dim R/G/B fills
+#                     errors solid fills can't), then dim R/G/B fills; the
+#                     animation loops with a 2s dark gap. NOTE: the matrix is
+#                     an EXTERNAL accessory on the D2 header (GPIO25) - with
+#                     no panel connected, mark this step FAIL with LEFT
 #   3 Buzzer   eyes - RTTTL scale replayed every 6s
 #   4 Touch    auto - press each button as prompted; wrong press = fail
 #   5 LDR      auto - cover sensor, pass at <50% of entry baseline (15s limit)
@@ -164,6 +167,12 @@ script:
       btn: int
     then:
       - lambda: |-
+          // Debounce: hardware run 2026-07-07 showed touch pads can double-fire
+          // within ~100ms, which the touch step counted as a wrong press
+          static uint32_t last_press_ms = 0;
+          uint32_t now = millis();
+          if (now - last_press_ms < 300) return;
+          last_press_ms = now;
           int step = id(test_step);
           if (step == 4) {
             if (btn == id(btn_index)) {

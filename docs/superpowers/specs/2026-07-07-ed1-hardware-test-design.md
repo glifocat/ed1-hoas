@@ -80,3 +80,24 @@ of scope (see Exclusions).
    add it to the compile matrix in `.github/workflows/esphome-check.yml`.
 4. Docs: file header explains how to run, what each step checks, and the
    Rev 1.0 note.
+
+## Hardware run 2026-07-07 (Rev 2.x board, external matrix on D2)
+
+Three iterations: initial run surfaced defects, fixes applied, final run clean.
+
+| Step | Result | Notes |
+|------|--------|-------|
+| 0 WiFi | PASS | RSSI shown on TFT |
+| 1 Display | FAIL → **PASS** | Panel is BGR: R/B swapped. Fixed with `use_bgr: true` in `packages/display.yaml` (latent repo-wide bug, invisible with white-only text) |
+| 2 Matrix | FAIL → **PASS** | Matrix is an EXTERNAL accessory (D2 header). Pin corrected GPIO12 → GPIO25 in `packages/led-matrix.yaml`; GPIO12 is the MTDI strapping pin and was never hardware-tested. Serpentine mapping verified by the walking pixel |
+| 3 Buzzer | PASS | Scale + 6s replay |
+| 4 Touch | FAIL → **PASS** 6/6 | Two defects: (a) `btn_x` threshold 900 latched the pad "pressed" from boot — calibrated to 450 (idle ~500, pressed 275–443); (b) pads double-fire within ~100ms — 300ms debounce added to `handle_button` |
+| 5 LDR | PASS | Auto-passed on cover; baseline guard OK |
+| 6 IR RX | PASS | Verified run 2: `NEC address=0xDF20 command=0xF20D` decoded and auto-passed (final run timed out — no remote at hand) |
+| 7 Summary | PASS | TFT list + matrix fill + log lines all correct |
+
+Deltas from spec (implemented per approved plan, spec text not updated):
+step 1 uses a single "R" orientation marker (not corner arrows); step 3 plays a
+scale only (no second melody); step 4 advances on any press, counting wrong
+ones (not only on correct press). Step 2 animation loops with a 2s dark gap
+(added after final review).
