@@ -1,0 +1,74 @@
+blueprint:
+  name: ED1 Scene Deck
+  description: >-
+    Map the 6 touch buttons of an ED1 Scene Deck
+    (ed1-scene-deck.sample.yaml from glifocat/ed1-hoas) to Home Assistant
+    actions. Pick any action per button — scenes, scripts, or full action
+    sequences. Button labels are edited directly on the ED1 device page in
+    Home Assistant.
+  domain: automation
+  author: glifocat
+  source_url: https://github.com/glifocat/ed1-hoas/blob/main/ha/blueprints/ed1_scene_deck.yaml
+  input:
+    deck_device:
+      name: Deck device name
+      description: >-
+        The ESPHome device_name of your deck (the "device_name" substitution
+        in its YAML, e.g. "ed1-deck"). Lets several decks share this
+        blueprint — create one automation per deck.
+      selector:
+        text:
+    up_action:
+      name: Up button (^)
+      default: []
+      selector:
+        action: {}
+    down_action:
+      name: Down button (v)
+      default: []
+      selector:
+        action: {}
+    left_action:
+      name: Left button (<)
+      default: []
+      selector:
+        action: {}
+    right_action:
+      name: Right button (>)
+      default: []
+      selector:
+        action: {}
+    ok_action:
+      name: OK button
+      default: []
+      selector:
+        action: {}
+    x_action:
+      name: X button
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 10
+
+trigger:
+  - platform: event
+    event_type: esphome.deck_button
+    event_data:
+      device: !input deck_device
+
+action:
+  - choose:
+      - conditions: "{{ trigger.event.data.button == 'up' }}"
+        sequence: !input up_action
+      - conditions: "{{ trigger.event.data.button == 'down' }}"
+        sequence: !input down_action
+      - conditions: "{{ trigger.event.data.button == 'left' }}"
+        sequence: !input left_action
+      - conditions: "{{ trigger.event.data.button == 'right' }}"
+        sequence: !input right_action
+      - conditions: "{{ trigger.event.data.button == 'ok' }}"
+        sequence: !input ok_action
+      - conditions: "{{ trigger.event.data.button == 'x' }}"
+        sequence: !input x_action

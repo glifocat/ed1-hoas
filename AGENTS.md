@@ -57,6 +57,7 @@ directive. The packages are also consumable as **remote packages**
 ### Sample Configurations
 
 - `ed1-message.sample.yaml` - Message display with chat log (HA API)
+- `ed1-scene-deck.sample.yaml` - 6-button HA action deck; companion blueprint in `ha/blueprints/`
 - `ed1-mqtt.sample.yaml` - Dashboard with MQTT messaging
 - `ed1-status.sample.yaml` - Status display showing WiFi, sensors, uptime (optional IR)
 - `ed1-smartir-detector.yaml` - IR code detector for SmartIR (Rev 2.3)

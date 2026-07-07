@@ -51,6 +51,7 @@ Supports both **Rev 1.0** and **Rev 2.3** boards. See the [hardware reference](h
 | File | Description |
 | ---- | ----------- |
 | `ed1-message.sample.yaml` | Message display with chat log (recommended) |
+| `ed1-scene-deck.sample.yaml` | 6-button HA action deck with live display labels |
 | `ed1-mqtt.sample.yaml` | Dashboard with MQTT messaging |
 | `ed1-status.sample.yaml` | Status display (WiFi, sensors, uptime) |
 | `ed1-smartir-detector.yaml` | IR code detector for SmartIR (Rev 2.3) |
@@ -58,6 +59,21 @@ Supports both **Rev 1.0** and **Rev 2.3** boards. See the [hardware reference](h
 | `ed1-robot-demo.yaml` | Interactive stepper motor robot demo |
 | `ed1-stepper-test.yaml` | Stepper motor testing and calibration |
 | `ed1-gpio-test.yaml` | MCP23009 GPIO diagnostic tool |
+
+### Scene Deck setup
+
+The scene deck turns the ED1 into a physical Home Assistant remote — no
+automations to write, no entity IDs to copy:
+
+1. Flash `ed1-scene-deck.sample.yaml`
+2. Import the companion blueprint:
+
+   [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fglifocat%2Fed1-hoas%2Fblob%2Fmain%2Fha%2Fblueprints%2Fed1_scene_deck.yaml)
+
+3. Create an automation from it and pick an action per button (real pickers —
+   scenes, scripts, or any action sequence)
+4. Edit the button labels on the deck's device page in HA; the display
+   updates live
 
 ## Use as Remote Packages
 

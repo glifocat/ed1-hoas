@@ -102,6 +102,7 @@ jobs:
       matrix:
         config:
           - ed1-message.sample.yaml
+          - ed1-scene-deck.sample.yaml
           - ed1-status.sample.yaml
           - ed1-mqtt.sample.yaml
           - ed1-robot-demo.yaml
