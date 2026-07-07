@@ -99,7 +99,7 @@ substitutions:
 packages:
   ed1:
     url: https://github.com/glifocat/ed1-hoas
-    ref: v1.0.0  # pin a release tag (or use main to track latest)
+    ref: v1.0.1  # pin a release tag (or use main to track latest)
     refresh: 1d
     files:
       - packages/display-colors.yaml
