@@ -352,3 +352,55 @@ display:
           if (id(step_results)[i] != 1) all = false;
         it.fill(all ? Color(0, 40, 0) : Color(40, 0, 0));
       }
+
+sensor:
+  - id: !extend light_sensor
+    update_interval: 500ms
+    on_value:
+      - lambda: |-
+          // Auto-pass when covered: reading drops below 50% of the step-entry
+          // baseline. Guard: baseline must be meaningful (>1%) - in a dark room
+          // the step falls through to the 15s timeout instead.
+          if (id(test_step) == 5 && id(ldr_baseline) > 1.0f && x < id(ldr_baseline) * 0.5f) {
+            ESP_LOGI("hwtest", "LDR covered: %.1f < 50%% of %.1f", x, id(ldr_baseline));
+            id(pass_step).execute();
+          }
+
+remote_receiver:
+  id: ir_receiver
+  on_nec:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "NEC %04X/%04X", (unsigned) x.address, (unsigned) x.command);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_samsung:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "SAMSUNG %08X", (uint32_t) (x.data >> 16));
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_lg:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "LG %08X/%u", (unsigned) x.data, x.nbits);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_sony:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "SONY %08X/%u", (unsigned) x.data, x.nbits);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_rc5:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "RC5 %02X/%02X", x.address, x.command);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_raw:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "RAW %u edges", (unsigned) x.size());
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
