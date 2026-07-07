@@ -118,11 +118,12 @@ text:
             }
         - rtttl.play: 'notify:d=8,o=5,b=140:c6,e6'
 
-# Override button behaviors for message navigation
+# Override button behaviors for message navigation.
+# NOTE: !extend APPENDS to the base on_press, so the press sounds from
+# packages/buttons.yaml already play - don't re-add them here.
 binary_sensor:
   - id: !extend btn_up
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           // Navigate to older message
           if (id(current_index) < (int)id(message_list).size() - 1) {
@@ -132,7 +133,6 @@ binary_sensor:
 
   - id: !extend btn_down
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           // Navigate to newer message
           if (id(current_index) > 0) {
@@ -142,7 +142,6 @@ binary_sensor:
 
   - id: !extend btn_x
     on_press:
-      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - lambda: |-
           // Delete current message
           if (!id(message_list).empty() && id(current_index) < (int)id(message_list).size()) {
