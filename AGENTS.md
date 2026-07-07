@@ -99,6 +99,9 @@ Package dependencies: `buttons.yaml` requires `buzzer.yaml` (button sounds);
 `display.yaml` requires `hardware.yaml`, `fonts.yaml`, `display-colors.yaml`,
 and `display-layout.yaml`.
 
+Home Assistant companion files live in `ha/` (e.g.
+`ha/blueprints/ed1_scene_deck.yaml`, the scene deck's action-picker blueprint).
+
 ### Using Packages
 
 Sample configs use substitutions and include packages:
@@ -150,7 +153,11 @@ binary_sensor:
 - **Buzzer**: GPIO26 via PAM8301 amplifier
 - **IR Receiver**: GPIO35 (TSOP75438TT); Rev 1.0 uses GPIO33
 - **IR Emitter**: GPIO32 (Rev 1.0 only)
-- **Touch Buttons**: GPIO4, GPIO13, GPIO2, GPIO27, GPIO15, GPIO14
+- **Touch Buttons**: GPIO4, GPIO13, GPIO2, GPIO27, GPIO15, GPIO14 — on
+  ESP32 classic a press *lowers* the reading, so `esp32_touch` thresholds
+  must sit below the idle band (calibrated to 420; idle ~500–578). A
+  threshold inside the idle band causes phantom presses. Recalibrate with
+  `esp32_touch: setup_mode: true` if pads drift.
 - **Light Sensor**: GPIO34 (ADC)
 - **I2C Address 0x15**: MXC6655XA accelerometer (not yet implemented)
 - **I2C Address 0x20**: MCP23009 I/O expander (stepper motor control)
