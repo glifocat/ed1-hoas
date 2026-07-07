@@ -14,6 +14,12 @@ substitutions:
   device_name: ed1-smartir-detector
   friendly_name: ED1 SmartIR Detector
   ap_ssid: ED1-SmartIR-Rescue
+  # Credentials injected into packages (remote packages cannot use !secret)
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  fallback_ap_password: !secret fallback_ap_password
+  api_encryption_key: !secret api_encryption_key_full
+  ota_password: !secret ota_password
   # For Rev 1.0 boards, uncomment the next line:
   # ir_receiver_pin: "GPIO33"
 

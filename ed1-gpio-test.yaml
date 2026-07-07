@@ -17,6 +17,12 @@ substitutions:
   device_name: ed1-gpio-test
   friendly_name: ED1 GPIO Test
   ap_ssid: ED1-GPIO-Rescue
+  # Credentials injected into packages (remote packages cannot use !secret)
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  fallback_ap_password: !secret fallback_ap_password
+  api_encryption_key: !secret api_encryption_key_full
+  ota_password: !secret ota_password
 
 packages:
   core: !include packages/core.yaml
