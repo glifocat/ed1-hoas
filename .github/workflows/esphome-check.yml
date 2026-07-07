@@ -107,6 +107,7 @@ jobs:
           - ed1-robot-demo.yaml
           - ed1-smartir-detector.yaml
           - ed1-wokwi.yaml
+          - ed1-hardware-test.yaml
 
     steps:
       - name: Checkout repository

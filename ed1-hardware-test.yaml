@@ -1,5 +1,29 @@
 # ==============================================================================
-# ED1 Hardware Self-Test - guided on-device test sequence (see Task 5 header)
+# ED1 Hardware Self-Test - guided on-device test sequence
+# ==============================================================================
+# Flash this after an ESPHome version bump or packages/ change to verify every
+# onboard peripheral in ~2 minutes. Instructions render on the TFT; the touch
+# buttons double as the confirmation mechanism (testing them implicitly).
+#
+#   esphome run ed1-hardware-test.yaml   # USB flash + logs
+#
+# Steps (auto = pass/fail measured, eyes = confirm with OK / fail with LEFT):
+#   0 WiFi     auto - connect within 20s (offline: shows fallback AP, continues)
+#   1 Display  eyes - color bars, 1px border, "R" marker top-right
+#   2 Matrix   eyes - single pixel sweeps row by row (catches pixel_mapper
+#                     errors solid fills can't), then dim R/G/B fills
+#   3 Buzzer   eyes - RTTTL scale replayed every 6s
+#   4 Touch    auto - press each button as prompted; wrong press = fail
+#   5 LDR      auto - cover sensor, pass at <50% of entry baseline (15s limit)
+#   6 IR RX    auto - any decoded signal from any remote passes (15s limit)
+#   7 Summary  TFT list + matrix green/red + PASS/FAIL lines in the log
+#
+# Controls: LEFT = fail current step and continue. Hold OK >=1.5s = restart.
+# Out of scope: BLE (RAM contention with the matrix; verify from HA),
+# stepper/MCP23009 (no hardware attached), IR TX loopback (Rev 1.0 only,
+# emitter on GPIO32 - future extension).
+# Touch issues on new ESPHome? Rebuild with esp32_touch setup_mode: true and
+# compare raw values against the thresholds in packages/buttons.yaml.
 # ==============================================================================
 
 substitutions:
