@@ -80,7 +80,7 @@ globals:
 # Per-button labels, editable from the HA device page (persisted on device)
 text:
   - platform: template
-    name: "${friendly_name} Up Label"
+    name: "Up Label"
     id: label_up
     optimistic: true
     restore_value: true
@@ -89,7 +89,7 @@ text:
     max_length: 18
     mode: text
   - platform: template
-    name: "${friendly_name} Down Label"
+    name: "Down Label"
     id: label_down
     optimistic: true
     restore_value: true
@@ -98,7 +98,7 @@ text:
     max_length: 18
     mode: text
   - platform: template
-    name: "${friendly_name} Left Label"
+    name: "Left Label"
     id: label_left
     optimistic: true
     restore_value: true
@@ -107,7 +107,7 @@ text:
     max_length: 18
     mode: text
   - platform: template
-    name: "${friendly_name} Right Label"
+    name: "Right Label"
     id: label_right
     optimistic: true
     restore_value: true
@@ -116,7 +116,7 @@ text:
     max_length: 18
     mode: text
   - platform: template
-    name: "${friendly_name} OK Label"
+    name: "OK Label"
     id: label_ok
     optimistic: true
     restore_value: true
@@ -125,7 +125,7 @@ text:
     max_length: 18
     mode: text
   - platform: template
-    name: "${friendly_name} X Label"
+    name: "X Label"
     id: label_x
     optimistic: true
     restore_value: true
