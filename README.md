@@ -72,8 +72,9 @@ automations to write, no entity IDs to copy:
 
 3. Create an automation from it and pick an action per button (real pickers —
    scenes, scripts, or any action sequence)
-4. Edit the button labels on the deck's device page in HA; the display
-   updates live
+4. Edit the button labels on the deck's device page in HA — type the text
+   and **press Enter** to commit (the field sends nothing until you do);
+   the display updates live
 
 ## Use as Remote Packages
 

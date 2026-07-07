@@ -122,7 +122,11 @@ packages:
   # ... other packages as needed
 ```
 
-To override or extend package components, use `!extend`:
+To override or extend package components, use `!extend`. Note that automation
+lists like `on_press` are **appended to**, not replaced (verified on hardware
+2026-07-07) — a config extending a button that already plays a beep must not
+re-add the beep, or both play and the second is rejected with an
+"Already playing" warning:
 
 ```yaml
 display:

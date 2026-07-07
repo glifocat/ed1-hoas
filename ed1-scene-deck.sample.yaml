@@ -134,12 +134,12 @@ text:
     max_length: 18
     mode: text
 
-# Buttons: beep, flash the row, fire the HA event (or error melody offline).
-# NOTE: !extend replaces on_press, so the beep is re-added here.
+# Buttons: flash the row and fire the HA event (or error melody offline).
+# NOTE: !extend APPENDS to the base on_press (verified on hardware), so the
+# beep from packages/buttons.yaml already plays - don't re-add it here.
 binary_sensor:
   - id: !extend btn_up
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           id(flash_row) = 0;
           id(flash_until) = millis() + 1500;
@@ -157,7 +157,6 @@ binary_sensor:
 
   - id: !extend btn_down
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           id(flash_row) = 1;
           id(flash_until) = millis() + 1500;
@@ -175,7 +174,6 @@ binary_sensor:
 
   - id: !extend btn_left
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           id(flash_row) = 2;
           id(flash_until) = millis() + 1500;
@@ -193,7 +191,6 @@ binary_sensor:
 
   - id: !extend btn_right
     on_press:
-      - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - lambda: |-
           id(flash_row) = 3;
           id(flash_until) = millis() + 1500;
@@ -211,7 +208,6 @@ binary_sensor:
 
   - id: !extend btn_ok
     on_press:
-      - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
       - lambda: |-
           id(flash_row) = 4;
           id(flash_until) = millis() + 1500;
@@ -229,7 +225,6 @@ binary_sensor:
 
   - id: !extend btn_x
     on_press:
-      - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - lambda: |-
           id(flash_row) = 5;
           id(flash_until) = millis() + 1500;

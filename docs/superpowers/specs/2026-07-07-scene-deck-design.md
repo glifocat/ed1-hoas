@@ -55,6 +55,19 @@ Two halves, connected by HA events:
   (or any automation) can still `text.set_value` them.
 - Events require HA 2024.x+ `esphome.` event convention — standard.
 
+## Smoke test findings (2026-07-07, real board + HA)
+
+- Event → blueprint → action: PASS (1 press = 1 trace = 1 action)
+- Label round-trip HA → display: PASS — but HA text fields only commit on
+  Enter (documented in README; user's first attempt silently sent nothing)
+- Offline press → error melody: PASS
+- **`!extend` APPENDS to `on_press`, it does not replace it.** The config
+  originally re-added the press beep (assuming replacement), causing a
+  duplicate play rejected with "Already playing" per press. Fixed by removing
+  the redundant plays; semantics documented in AGENTS.md. NOTE:
+  `ed1-message.sample.yaml` re-adds beeps in its extends too (pre-existing,
+  same cosmetic warning) — follow-up candidate.
+
 ## Verification
 
 - `esphome config` on all `ed1-*.yaml`; `esphome compile` on the new config
