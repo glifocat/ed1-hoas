@@ -3,6 +3,14 @@
 # ==============================================================================
 # Basic button configuration with beep sounds
 # Override on_press in main config using !extend for custom behavior
+# (note: !extend APPENDS to on_press, so the beep here always plays)
+#
+# Thresholds hardware-calibrated 2026-07-07 (ESP32 classic: a press LOWERS
+# the reading; pressed when value < threshold). Measured on a real board:
+#   idle 500-578, pressed 165-318 across all six pads. The old threshold of
+#   500 sat inside the idle band (Up idled at 527, only 27 above it), causing
+#   phantom presses from drift/noise. 420 is the midpoint of the dead zone.
+#   Recalibrate with `esp32_touch: setup_mode: true` if your board differs.
 # ==============================================================================
 
 esp32_touch:
@@ -13,7 +21,7 @@ binary_sensor:
     id: btn_up
     name: "${friendly_name} Button Up"
     pin: GPIO4
-    threshold: 500
+    threshold: 420
     on_press:
       - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Up PRESSED"
@@ -22,7 +30,7 @@ binary_sensor:
     id: btn_down
     name: "${friendly_name} Button Down"
     pin: GPIO13
-    threshold: 500
+    threshold: 420
     on_press:
       - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Down PRESSED"
@@ -31,7 +39,7 @@ binary_sensor:
     id: btn_left
     name: "${friendly_name} Button Left"
     pin: GPIO2
-    threshold: 500
+    threshold: 420
     on_press:
       - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Left PRESSED"
@@ -40,7 +48,7 @@ binary_sensor:
     id: btn_right
     name: "${friendly_name} Button Right"
     pin: GPIO27
-    threshold: 500
+    threshold: 420
     on_press:
       - rtttl.play: 'beep:d=16,o=5,b=140:c'
       - logger.log: "Button Right PRESSED"
@@ -49,7 +57,7 @@ binary_sensor:
     id: btn_ok
     name: "${friendly_name} Button OK"
     pin: GPIO15
-    threshold: 500
+    threshold: 420
     on_press:
       - rtttl.play: 'ok:d=8,o=5,b=160:c,e,g'
       - logger.log: "Button OK PRESSED"
@@ -58,10 +66,7 @@ binary_sensor:
     id: btn_x
     name: "${friendly_name} Button X"
     pin: GPIO14
-    # Hardware-calibrated 2026-07-07: idle ~500, pressed 275-443. The old 900
-    # kept the pad latched "pressed" from boot (ESP32 classic: press LOWERS
-    # the value; 900 > idle meant permanently below threshold).
-    threshold: 450
+    threshold: 420
     on_press:
       - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - logger.log: "Button X PRESSED"
