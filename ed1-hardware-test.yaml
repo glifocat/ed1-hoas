@@ -101,6 +101,7 @@ script:
               id(walk_pos) = 0;
               break;
             case 3:
+              // deliberately bypasses buzzer_volume - a muted volume must not mask the buzzer check
               id(buzzer_rtttl).play("scale:d=8,o=5,b=160:c,d,e,f,g,a,b,c6");
               break;
             case 4:
@@ -120,6 +121,7 @@ script:
               break;
             case 7: {
               bool all = true;
+              // index 7 = summary itself, never scored
               for (int i = 0; i < 7; i++) {
                 ESP_LOGI("hwtest", "Step %d: %s", i, id(step_results)[i] == 1 ? "PASS" : "FAIL");
                 if (id(step_results)[i] != 1) all = false;
@@ -220,7 +222,10 @@ interval:
   - interval: 50ms
     then:
       - lambda: |-
-          if (id(test_step) == 2 && id(walk_pos) < 346) id(walk_pos) += 1;
+          if (id(test_step) == 2) {
+            id(walk_pos) += 1;
+            if (id(walk_pos) >= 386) id(walk_pos) = 0;  // 346 + 40 ticks dark gap, then replay
+          }
 
 binary_sensor:
   - id: !extend btn_up
@@ -292,7 +297,7 @@ display:
           it.rectangle(0, 0, 128, 128, Color(255, 255, 0));   // 1px border
           it.print(118, 4, id(pixel_font), "R");              // orientation marker top-right
           it.print(4, 70, id(pixel_font), "Bars R G B W?");
-          it.print(4, 80, id(pixel_font), "Border + R top-right?");
+          it.print(4, 80, id(pixel_font), "Border + R at top-R?");
           it.print(4, 110, id(pixel_font), "OK=pass  LEFT=fail");
           break;
         }
@@ -315,7 +320,7 @@ display:
         case 4: {
           it.print(4, 4, id(pixel_font), "4/7 TOUCH");
           it.printf(20, 40, id(message_font), "Press %s", BTN_NAMES[id(btn_index)]);
-          it.printf(4, 70, id(pixel_font), "%d/6  wrong press = fail", id(btn_index));
+          it.printf(4, 70, id(pixel_font), "%d/6  wrong = fail", id(btn_index));
           break;
         }
         case 5: {
@@ -342,6 +347,7 @@ display:
           };
           it.print(4, 4, id(message_font), "SUMMARY");
           bool all = true;
+          // index 7 = summary itself, never scored
           for (int i = 0; i < 7; i++) {
             bool ok = id(step_results)[i] == 1;
             if (!ok) all = false;
@@ -372,6 +378,7 @@ display:
         }
       } else if (id(test_step) >= 7) {
         bool all = true;
+        // index 7 = summary itself, never scored
         for (int i = 0; i < 7; i++)
           if (id(step_results)[i] != 1) all = false;
         it.fill(all ? Color(0, 40, 0) : Color(40, 0, 0));
@@ -424,6 +431,7 @@ remote_receiver:
         if (id(test_step) == 6) id(pass_step).execute();
   on_raw:
     - lambda: |-
+        if (x.size() < 16) return;  // ignore short bursts (ambient IR noise) - only real remote signals pass
         char buf[40];
         snprintf(buf, sizeof(buf), "RAW %u edges", (unsigned) x.size());
         id(last_ir) = buf;
