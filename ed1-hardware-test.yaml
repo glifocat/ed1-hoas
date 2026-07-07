@@ -21,7 +21,7 @@
 #   7 Summary  TFT list + PASS/FAIL lines in the log
 #
 # Controls: LEFT = fail current step and continue. Hold OK >=1.5s = restart.
-# Out of scope: BLE (RAM contention with the matrix; verify from HA),
+# Out of scope: BLE (trivially verified from Home Assistant),
 # stepper/MCP23009 (no hardware attached), IR TX loopback (Rev 1.0 only,
 # emitter on GPIO32 - future extension).
 # Touch issues on new ESPHome? Rebuild with esp32_touch setup_mode: true and
@@ -54,7 +54,7 @@ globals:
   - id: test_step          # current step 0..7
     type: int
     initial_value: '0'
-  - id: step_results       # 0=pending 1=pass 2=fail, index = step
+  - id: step_results       # 0=pending 1=pass 2=fail 3=skipped, index = step
     type: std::vector<int>
     initial_value: 'std::vector<int>(8, 0)'
   - id: btn_index          # step 4: which button is currently prompted (0..5)

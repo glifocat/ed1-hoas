@@ -38,10 +38,10 @@ of scope (see Exclusions).
 |---|------|---------------|------|
 | 0 | Boot info: ESPHome version, SSID + RSSI, IP on TFT | WiFi connected → auto-pass | yes |
 | 1 | Display: color bars, 1px border, corner arrows | Human OK — bars, border, orientation correct | eyes |
-| 2 | Matrix: single pixel walks all 256 positions, then R/G/B fills | Human OK — walk is one continuous serpentine line, no jumps | eyes |
+| 2 | Matrix: SKIPPED — optional external accessory, removed from the default test (see run record below) | auto-marks SKIP | — |
 | 3 | Buzzer: RTTTL scale + melody | Human OK — heard | eyes |
 | 4 | Touch: prompt each of the 6 buttons in fixed order; wrong button marks that prompt failed | Correct press advances | yes |
-| 5 | LDR: live ADC on TFT; "cover the sensor" | Reading drops >50% from step-entry baseline within 15 s | yes |
+| 5 | LDR: live ADC on TFT; "cover it or light it" | 50% drop OR 2× rise (+5 abs floor) from step-entry baseline within 15 s | yes |
 | 6 | IR RX: "point any remote, press a key"; decoded protocol + code on TFT | Any `remote_receiver` decode event | yes |
 | 7 | Summary: PASS/FAIL per step on TFT; matrix green/red; report logged | — | — |
 
