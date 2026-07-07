@@ -3,10 +3,12 @@
 # ==============================================================================
 # Optional package for MQTT support alongside or instead of native API.
 #
-# Required secrets:
+# Required substitutions:
 #   - mqtt_broker: Broker hostname or IP
 #   - mqtt_user: MQTT username
 #   - mqtt_password: MQTT password
+#   (Packages cannot use !secret — inject via substitutions, e.g.
+#    `mqtt_broker: !secret mqtt_broker` in the device config.)
 #
 # Topics:
 #   - ed1/${device_name}/message (subscribe) - Receive messages to display
@@ -14,9 +16,9 @@
 # ==============================================================================
 
 mqtt:
-  broker: !secret mqtt_broker
-  username: !secret mqtt_user
-  password: !secret mqtt_password
+  broker: ${mqtt_broker}
+  username: ${mqtt_user}
+  password: ${mqtt_password}
   discovery: false  # Disable HA discovery - use ESPHome API instead
   topic_prefix: ed1/${device_name}
   birth_message:
