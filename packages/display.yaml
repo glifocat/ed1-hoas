@@ -13,6 +13,10 @@ display:
     reset_pin: GPIO10
     rotation: 0
     model: "INITR_GREENTAB"
+    # Hardware-verified 2026-07-07: the ED1's panel is BGR - without this,
+    # red and blue are swapped (unnoticed for years because all configs drew
+    # white text; caught by ed1-hardware-test.yaml's color-bar step)
+    use_bgr: true
     col_start: 2
     row_start: 3
     device_width: 128

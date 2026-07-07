@@ -58,7 +58,10 @@ binary_sensor:
     id: btn_x
     name: "${friendly_name} Button X"
     pin: GPIO14
-    threshold: 900
+    # Hardware-calibrated 2026-07-07: idle ~500, pressed 275-443. The old 900
+    # kept the pad latched "pressed" from boot (ESP32 classic: press LOWERS
+    # the value; 900 > idle meant permanently below threshold).
+    threshold: 450
     on_press:
       - rtttl.play: 'alert:d=8,o=5,b=180:c,c,c'
       - logger.log: "Button X PRESSED"

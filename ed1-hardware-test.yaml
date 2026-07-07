@@ -1,0 +1,401 @@
+# ==============================================================================
+# ED1 Hardware Self-Test - guided on-device test sequence
+# ==============================================================================
+# Flash this after an ESPHome version bump or packages/ change to verify every
+# onboard peripheral in ~2 minutes. Instructions render on the TFT; the touch
+# buttons double as the confirmation mechanism (testing them implicitly).
+#
+#   esphome run ed1-hardware-test.yaml   # USB flash + logs
+#
+# Steps (auto = pass/fail measured, eyes = confirm with OK / fail with LEFT):
+#   0 WiFi     auto - connect within 20s (offline: shows fallback AP, continues)
+#   1 Display  eyes - color bars, 1px border, "R" marker top-right
+#   2 Matrix   SKIP - the 32x8 LED matrix is an optional external accessory
+#                     (D2 header) and is not part of the default test; the
+#                     step auto-marks itself SKIP (see packages/led-matrix.yaml)
+#   3 Buzzer   eyes - RTTTL scale replayed every 6s
+#   4 Touch    auto - press each button as prompted; wrong press = fail
+#   5 LDR      auto - cover the sensor OR shine a light at it; passes on a
+#                     50% drop or 2x rise from entry baseline (15s limit)
+#   6 IR RX    auto - any decoded signal from any remote passes (15s limit)
+#   7 Summary  TFT list + PASS/FAIL lines in the log
+#
+# Controls: LEFT = fail current step and continue. Hold OK >=1.5s = restart.
+# Out of scope: BLE (trivially verified from Home Assistant),
+# stepper/MCP23009 (no hardware attached), IR TX loopback (Rev 1.0 only,
+# emitter on GPIO32 - future extension).
+# Touch issues on new ESPHome? Rebuild with esp32_touch setup_mode: true and
+# compare raw values against the thresholds in packages/buttons.yaml.
+# ==============================================================================
+
+substitutions:
+  device_name: ed1-hwtest
+  friendly_name: ED1 HW Test
+  ap_ssid: ED1-HWTest-Rescue
+
+packages:
+  core: !include packages/core.yaml
+  hardware: !include packages/hardware.yaml
+  display: !include packages/display.yaml
+  fonts: !include packages/fonts.yaml
+  buzzer: !include packages/buzzer.yaml
+  buttons: !include packages/buttons.yaml
+  sensors: !include packages/sensors.yaml
+  ir_receiver: !include packages/ir-receiver.yaml
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: sound_startup
+      - script.execute: step_watchdog
+
+globals:
+  - id: test_step          # current step 0..7
+    type: int
+    initial_value: '0'
+  - id: step_results       # 0=pending 1=pass 2=fail 3=skipped, index = step
+    type: std::vector<int>
+    initial_value: 'std::vector<int>(8, 0)'
+  - id: btn_index          # step 4: which button is currently prompted (0..5)
+    type: int
+    initial_value: '0'
+  - id: step4_fails        # step 4: count of wrong presses
+    type: int
+    initial_value: '0'
+  - id: ldr_baseline       # step 5: light level captured on step entry
+    type: float
+    initial_value: '0'
+  - id: last_ir            # step 6: last decoded IR code, for the TFT
+    type: std::string
+
+script:
+  - id: pass_step
+    then:
+      - lambda: 'id(step_results)[id(test_step)] = 1;'
+      - script.execute: sound_success
+      - script.execute: next_step
+
+  - id: fail_step
+    then:
+      - lambda: 'id(step_results)[id(test_step)] = 2;'
+      - script.execute: sound_alert
+      - script.execute: next_step
+
+  - id: next_step
+    then:
+      - lambda: |-
+          id(test_step) += 1;
+          if (id(test_step) == 2) {
+            // Matrix is an optional external accessory - not part of the default test
+            id(step_results)[2] = 3;  // 3 = skipped
+            ESP_LOGI("hwtest", "Step 2 (matrix): SKIP - optional external accessory");
+            id(test_step) = 3;
+          }
+          switch (id(test_step)) {
+            case 3:
+              // deliberately bypasses buzzer_volume - a muted volume must not mask the buzzer check
+              id(buzzer_rtttl).play("scale:d=8,o=5,b=160:c,d,e,f,g,a,b,c6");
+              break;
+            case 4:
+              id(btn_index) = 0;
+              id(step4_fails) = 0;
+              // esp32_touch raw values only appear in setup_mode builds; leave a
+              // diagnosis breadcrumb for 2026.x threshold drift.
+              ESP_LOGI("hwtest", "Touch step: if presses do not register, rebuild "
+                       "with esp32_touch setup_mode: true to read raw values");
+              break;
+            case 5:
+              id(ldr_baseline) = isnan(id(light_sensor).state) ? 0.0f : id(light_sensor).state;
+              ESP_LOGI("hwtest", "LDR baseline: %.1f", id(ldr_baseline));
+              break;
+            case 6:
+              id(last_ir) = "";
+              break;
+            case 7: {
+              bool all = true;
+              // index 7 = summary itself, never scored
+              for (int i = 0; i < 7; i++) {
+                int r = id(step_results)[i];
+                ESP_LOGI("hwtest", "Step %d: %s", i, r == 1 ? "PASS" : (r == 3 ? "SKIP" : "FAIL"));
+                if (r != 1 && r != 3) all = false;
+              }
+              ESP_LOGI("hwtest", "RESULT: %s", all ? "ALL PASS" : "FAILURES PRESENT");
+              break;
+            }
+          }
+      - script.execute: step_watchdog
+
+  # Timeouts: step 0 (WiFi) 20s, steps 5/6 (LDR, IR) 15s. mode: restart means
+  # every step change re-arms it; steps without a timeout just fall through.
+  - id: step_watchdog
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(test_step) == 0;'
+          then:
+            - delay: 20s
+            - if:
+                condition:
+                  lambda: 'return id(test_step) == 0;'
+                then:
+                  - script.execute: fail_step
+      - if:
+          condition:
+            lambda: 'return id(test_step) == 5 || id(test_step) == 6;'
+          then:
+            - delay: 15s
+            - if:
+                condition:
+                  lambda: 'return id(test_step) == 5 || id(test_step) == 6;'
+                then:
+                  - script.execute: fail_step
+
+  # btn: 0=UP 1=DOWN 2=LEFT 3=RIGHT 4=OK 5=X
+  - id: handle_button
+    parameters:
+      btn: int
+    then:
+      - lambda: |-
+          // Debounce: hardware run 2026-07-07 showed touch pads can double-fire
+          // within ~100ms, which the touch step counted as a wrong press
+          static uint32_t last_press_ms = 0;
+          uint32_t now = millis();
+          if (now - last_press_ms < 300) return;
+          last_press_ms = now;
+          int step = id(test_step);
+          if (step == 4) {
+            if (btn == id(btn_index)) {
+              ESP_LOGI("hwtest", "Touch button %d OK", btn);
+            } else {
+              ESP_LOGW("hwtest", "Touch: expected %d, got %d", id(btn_index), btn);
+              id(step4_fails) += 1;
+            }
+            id(btn_index) += 1;
+            if (id(btn_index) >= 6) {
+              if (id(step4_fails) == 0) id(pass_step).execute();
+              else id(fail_step).execute();
+            }
+            return;
+          }
+          if (btn == 2) {  // LEFT: mark current step failed, move on
+            if (step <= 6) id(fail_step).execute();
+            return;
+          }
+          if (btn == 4) {  // OK: confirm observed steps
+            if (step >= 1 && step <= 3) id(pass_step).execute();
+          }
+
+  - id: restart_test
+    then:
+      - lambda: |-
+          for (int i = 0; i < 8; i++) id(step_results)[i] = 0;
+          id(test_step) = 0;
+          id(btn_index) = 0;
+          id(step4_fails) = 0;
+          id(last_ir) = "";
+      - script.execute: sound_notify
+      - script.execute: step_watchdog
+
+interval:
+  # Step 0 auto-pass when WiFi connects
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(test_step) == 0;'
+              - wifi.connected:
+          then:
+            - script.execute: pass_step
+  # Step 3: replay the scale every 6s so the user can listen again
+  - interval: 6s
+    then:
+      - if:
+          condition:
+            lambda: 'return id(test_step) == 3;'
+          then:
+            - lambda: 'id(buzzer_rtttl).play("scale:d=8,o=5,b=160:c,d,e,f,g,a,b,c6");'
+
+binary_sensor:
+  - id: !extend btn_up
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 0
+  - id: !extend btn_down
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 1
+  - id: !extend btn_left
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 2
+  - id: !extend btn_right
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 3
+  - id: !extend btn_ok
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 4
+    # Hold OK >=1.5s restarts the whole sequence (intended from the summary
+    # screen; mid-test it will first register a normal OK press).
+    on_multi_click:
+      - timing:
+          - ON for at least 1.5s
+        then:
+          - script.execute: restart_test
+  - id: !extend btn_x
+    on_press:
+      - script.execute:
+          id: handle_button
+          btn: 5
+
+display:
+  - id: !extend internal_display
+    update_interval: 250ms
+    lambda: |-
+      static const char *BTN_NAMES[6] = {"UP", "DOWN", "LEFT", "RIGHT", "OK", "X"};
+      it.fill(Color(0, 0, 0));
+      switch (id(test_step)) {
+        case 0: {
+          it.print(2, 2, id(message_font), "HW TEST 0/7 WIFI");
+          it.print(2, 18, id(pixel_font), "ESPHome " ESPHOME_VERSION);
+          if (wifi::global_wifi_component->is_connected()) {
+            it.printf(2, 32, id(pixel_font), "SSID: %s", id(wifi_ssid).state.c_str());
+            it.printf(2, 42, id(pixel_font), "IP: %s", id(wifi_ip).state.c_str());
+            it.printf(2, 52, id(pixel_font), "RSSI: %d dBm", id(wifi_rssi));
+          } else {
+            it.print(2, 32, id(pixel_font), "Connecting...");
+            it.print(2, 42, id(pixel_font), "Fallback AP:");
+            it.print(2, 52, id(pixel_font), "${ap_ssid}");
+          }
+          break;
+        }
+        case 1: {
+          static const Color BARS[4] = {
+            Color(255, 0, 0), Color(0, 255, 0), Color(0, 0, 255), Color(255, 255, 255)
+          };
+          it.print(4, 4, id(pixel_font), "1/7 DISPLAY");
+          for (int i = 0; i < 4; i++)
+            it.filled_rectangle(8 + i * 28, 20, 24, 40, BARS[i]);
+          it.rectangle(0, 0, 128, 128, Color(255, 255, 0));   // 1px border
+          it.print(118, 4, id(pixel_font), "R");              // orientation marker top-right
+          it.print(4, 70, id(pixel_font), "Bars R G B W?");
+          it.print(4, 80, id(pixel_font), "Border + R at top-R?");
+          it.print(4, 110, id(pixel_font), "OK=pass  LEFT=fail");
+          break;
+        }
+        case 3: {
+          it.print(4, 4, id(pixel_font), "3/7 BUZZER");
+          it.print(4, 24, id(pixel_font), "You should hear a");
+          it.print(4, 34, id(pixel_font), "scale every 6s");
+          it.print(4, 110, id(pixel_font), "OK=pass  LEFT=fail");
+          break;
+        }
+        case 4: {
+          it.print(4, 4, id(pixel_font), "4/7 TOUCH");
+          it.printf(20, 40, id(message_font), "Press %s", BTN_NAMES[id(btn_index)]);
+          it.printf(4, 70, id(pixel_font), "%d/6  wrong = fail", id(btn_index));
+          break;
+        }
+        case 5: {
+          it.print(4, 4, id(pixel_font), "5/7 LIGHT SENSOR");
+          it.print(4, 24, id(pixel_font), "Cover it or light it!");
+          it.printf(4, 44, id(pixel_font), "now:  %.1f", id(light_sensor).state);
+          it.printf(4, 54, id(pixel_font), "base: %.1f", id(ldr_baseline));
+          it.print(4, 70, id(pixel_font), "pass: -50% or 2x rise");
+          it.print(4, 110, id(pixel_font), "15s timeout");
+          break;
+        }
+        case 6: {
+          it.print(4, 4, id(pixel_font), "6/7 IR RECEIVER");
+          it.print(4, 24, id(pixel_font), "Point any remote,");
+          it.print(4, 34, id(pixel_font), "press a key");
+          if (!id(last_ir).empty())
+            it.printf(4, 54, id(pixel_font), "%s", id(last_ir).c_str());
+          it.print(4, 110, id(pixel_font), "15s timeout");
+          break;
+        }
+        default: {
+          static const char *STEP_NAMES[7] = {
+            "WiFi", "Display", "Matrix", "Buzzer", "Touch", "Light", "IR"
+          };
+          it.print(4, 4, id(message_font), "SUMMARY");
+          bool all = true;
+          // index 7 = summary itself, never scored
+          for (int i = 0; i < 7; i++) {
+            int r = id(step_results)[i];
+            if (r != 1 && r != 3) all = false;
+            it.printf(4, 22 + i * 10, id(pixel_font), "%s %s",
+                      r == 1 ? "PASS" : (r == 3 ? "SKIP" : "FAIL"), STEP_NAMES[i]);
+          }
+          it.print(4, 100, id(message_font), all ? "ALL PASS" : "CHECK LOG");
+          it.print(4, 116, id(pixel_font), "hold OK = restart");
+          break;
+        }
+      }
+sensor:
+  - id: !extend light_sensor
+    update_interval: 500ms
+    on_value:
+      - lambda: |-
+          // Auto-pass on any significant change from the step-entry baseline:
+          // cover the sensor (drop below 50%) OR shine a light at it (rise
+          // above 2x, with a +5 absolute floor so ADC noise on a near-zero
+          // baseline can't trigger). Hardware run showed a dim room gives a
+          // baseline too low to halve, so a rise must also count.
+          if (id(test_step) != 5) return;
+          float base = id(ldr_baseline);
+          bool dropped = base > 1.0f && x < base * 0.5f;
+          bool rose = x > base * 2.0f && x > base + 5.0f;
+          if (dropped || rose) {
+            ESP_LOGI("hwtest", "LDR %s: %.1f (baseline %.1f)", dropped ? "covered" : "lit", x, base);
+            id(pass_step).execute();
+          }
+
+remote_receiver:
+  id: ir_receiver
+  on_nec:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "NEC %04X/%04X", (unsigned) x.address, (unsigned) x.command);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_samsung:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "SAMSUNG %08X", (uint32_t) (x.data >> 16));
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_lg:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "LG %08X/%u", (unsigned) x.data, x.nbits);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_sony:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "SONY %08X/%u", (unsigned) x.data, x.nbits);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_rc5:
+    - lambda: |-
+        char buf[40];
+        snprintf(buf, sizeof(buf), "RC5 %02X/%02X", x.address, x.command);
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();
+  on_raw:
+    - lambda: |-
+        if (x.size() < 16) return;  // ignore short bursts (ambient IR noise) - only real remote signals pass
+        char buf[40];
+        snprintf(buf, sizeof(buf), "RAW %u edges", (unsigned) x.size());
+        id(last_ir) = buf;
+        if (id(test_step) == 6) id(pass_step).execute();

@@ -6,6 +6,13 @@ light:
   - platform: esp32_rmt_led_strip
     rgb_order: GRB
     chipset: WS2812
+    # The matrix is an EXTERNAL accessory (3-pin S/+/- header, S=data).
+    # GPIO12 is the original design pin but hardware verification on
+    # 2026-07-07 was INCONCLUSIVE: a probe driving GPIO12+GPIO25 together
+    # lit a panel on the D2 header, yet single-pin builds on either pin
+    # stayed dark. If your panel stays dark, try headers D1-D4 and pins
+    # GPIO12/GPIO25/GPIO32/GPIO26 systematically. Note GPIO12 is the MTDI
+    # strapping pin: a panel pulling DIN high at reset prevents boot.
     pin: GPIO12
     num_leds: 256
     name: "${friendly_name} LED Matrix"
